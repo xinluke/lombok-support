@@ -19,7 +19,7 @@ public class ApplicationTests {
 
     @Test
     public void contextLoads() throws IOException {
-        job.handle(new File("c:AppGroupController.java"));
+        job.handle(new File("c:/AppGroupController.java"));
     }
 
 }
