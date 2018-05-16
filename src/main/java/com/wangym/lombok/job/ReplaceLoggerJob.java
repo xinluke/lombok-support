@@ -101,7 +101,7 @@ public class ReplaceLoggerJob {
     }
 
     private boolean testExistLogger(String line, String className) {
-        Pattern p = Pattern.compile("=\\s*LoggerFactory.getLogger\\(" + className + "\\.class\\)");
+        Pattern p = Pattern.compile("=\\s*LoggerFactory.getLogger\\(" + className + "\\.class(\\.getName\\(\\))*\\)");
         Matcher matcher = p.matcher(line);
         return matcher.find();
     }
