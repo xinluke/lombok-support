@@ -18,6 +18,8 @@ public class Application {
         ConfigurableApplicationContext ctx = SpringApplication.run(Application.class, args);
         ReplaceLoggerJob modifyJob = ctx.getBean(ReplaceLoggerJob.class);
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        // 设置javaparse输出文本的换行符
+        System.setProperty("line.separator", "\n");
         // 以当前jar为基点，搜索下面全部的文件
         Resource[] resources = resolver.getResources("file:./**");
         for (Resource resource : resources) {
@@ -26,7 +28,11 @@ public class Application {
             }
             String uriStr = resource.getURI().toString();
             log.info("尝试读取文件：{}", uriStr);
-            modifyJob.handle(resource.getFile());
+            try {
+                modifyJob.handle(resource.getFile());
+            } catch (Exception e) {
+                log.info("读取文件失败：{}", uriStr, e);
+            }
         }
     }
 }

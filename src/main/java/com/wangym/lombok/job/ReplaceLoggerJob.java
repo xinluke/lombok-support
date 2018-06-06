@@ -1,18 +1,29 @@
 package com.wangym.lombok.job;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.printer.PrettyPrinterConfiguration;
+import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import com.wangym.lombok.job.log.LogPackage;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
-import com.wangym.lombok.job.log.LoggerPackage;
-import com.wangym.lombok.job.log.LoggerVerify;
-
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author wangym
@@ -22,111 +33,101 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ReplaceLoggerJob {
 
-	@Autowired
-	private List<LoggerVerify> loggerVerify;
+    public void handle(File file) throws IOException {
+        byte[] bytes = FileCopyUtils.copyToByteArray(file);
+        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes,"utf-8"));
+        LexicalPreservingPrinter.setup(compilationUnit);
+        List<ClassOrInterfaceDeclaration> clazzList = compilationUnit.findAll(ClassOrInterfaceDeclaration.class);
+        if (clazzList.size() != 1) {
+            return;
+        }
+        ClassOrInterfaceDeclaration c = clazzList.get(0);
+        String className = c.getNameAsString();
+        List<FieldDeclaration> fields = c.getFields();
+        LogPackage pkg = null;
+        for (FieldDeclaration field : fields) {
+            pkg = getLogPackage(field, className);
+            if (pkg != null) {
+                break;
+            }
+        }
+        if (pkg != null) {
+            log.info("当前文件符合转换,class name:{},logger name:{}", className, pkg.getLoggerName());
+            // 清除原来的log声明
+            pkg.getField().remove();
+            addAnnotation(c);
+            deleteImports(compilationUnit);
+            PrettyPrinterConfiguration conf = new PrettyPrinterConfiguration();
+            // 默认取的是系统变量line.separator，未保持一致，显式指定为unix风格换行符
+            conf.setEndOfLineCharacter("\n");
+            String newBody = LexicalPreservingPrinter.print(compilationUnit).replaceAll(pkg.getLoggerName() + ".", "log.");
+            // 以utf-8编码的方式写入文件中
+            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
+        }
+    }
 
-	public void handle(File file) throws IOException {
-		// 以utf-8的编码方式读取文件
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"))) {
-			br.mark((int) (file.length() + 1));
-			String line;
-			String className = null;
-			String classLine = null;
-			LoggerPackage lpkg = null;
-			boolean annotationExist = false;
-			while ((line = br.readLine()) != null) {
-				className = getClassName(line);
-				if (className != null) {
-					classLine = line;
-					log.info("class name:{}", className);
-					break;
-				}
-			}
-			br.reset();
-			while ((line = br.readLine()) != null) {
-				lpkg = getLoggerVal(line, className);
-				if (lpkg != null) {
-					log.info("logger config:{}", lpkg);
-					break;
-				}
-			}
-			br.reset();
-			while ((line = br.readLine()) != null) {
-				if (line.contains("@Slf4j")) {
-					annotationExist = true;
-					break;
-				}
-			}
-			// 不符合条件立刻终止
-			if (className == null || lpkg == null) {
-				return;
-			}
-			StringBuffer newBody = new StringBuffer();
-			String loggerName = lpkg.getLoggerName();
-			log.info("当前文件符合转换,class name:{},logger name:{}", className, loggerName);
-			String target = loggerName + ".";
-			// 重置至mark点
-			br.reset();
-			while ((line = br.readLine()) != null) {
-				if (line.contains(lpkg.getImportClassName())) {
-					if (annotationExist) {
-						continue;
-					}
-					newBody.append("import lombok.extern.slf4j.Slf4j;");
-				} else if (line.contains(classLine)) {
-					if (!annotationExist) {
-						newBody.append("@Slf4j\n");
-					}
-					newBody.append(classLine);
-				} else if (line.contains(lpkg.getLoggerdefined())) {
-					continue;
-				} else if (line.contains("import org.slf4j.Logger;")) {
-					continue;
-				} else {
-					newBody.append(line.replace(target, "log."));
-				}
-				newBody.append("\n");
+    /**
+     * 提取目标为 private作用域，Logger类型，并且右表达式包含类名的FieldDeclaration
+     * 
+     * @param field
+     * @param className
+     * @return
+     */
+    private LogPackage getLogPackage(FieldDeclaration field, String className) {
+        if (field.isPrivate()) {
+            List<VariableDeclarator> variableList = field.findAll(VariableDeclarator.class);
+            // 假设一个FieldDeclaration只定义一个VariableDeclarator
+            if (variableList.size() == 1) {
+                VariableDeclarator variable = variableList.get(0);
+                if ("Logger".equals(variable.getTypeAsString())) {
+                    Optional<Expression> initializer = variable.getInitializer();
+                    if (initializer.isPresent()) {
+                        Expression exp = initializer.get();
+                        if (exp instanceof MethodCallExpr) {
+                            boolean check = ((MethodCallExpr) exp).getArgument(0).toString().contains(className);
+                            if (check) {
+                                return new LogPackage(field, variable.getNameAsString());
+                            }
+                        }
+                    }
 
-			}
-			// 以utf-8编码的方式写入文件中
-			FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
-			// System.out.println(newBody.toString());
-		}
-	}
+                }
+            }
+        }
+        return null;
+    }
 
-	private LoggerPackage getLoggerVal(String line, String className) {
-		if (className == null) {
-			return null;
-		}
-		for (LoggerVerify logger : loggerVerify) {
-			if (logger.test(line, className)) {
-				String leftText = line.split("=")[0];
-				String[] arr = leftText.split("\\s+");
-				// 取最后一个单词即是logger变量的名字
-				LoggerPackage pkg =new LoggerPackage(logger.getImportClassName(), arr[arr.length - 1], line);
-				return pkg;
-			}
-		}
-		return null;
-	}
+    private void addAnnotation(ClassOrInterfaceDeclaration c) {
+        NodeList<AnnotationExpr> anns = c.getAnnotations();
+        String name = "Slf4j";
+        boolean notExist = anns.stream()
+                .filter(it -> name.equals(it.getNameAsString()))
+                .count() == 0;
+        if (notExist) {
+            anns.add(new MarkerAnnotationExpr(name));
+        }
+    }
 
-	private String getClassName(String line) {
-		if (testExistClassName(line)) {
-			String[] arr = line.split("\\s+");
-			// 第三个单词是类名
-			String className = arr[2];
-			if (className.endsWith("{")) {
-				className = className.substring(0, className.length() - 1);
-			}
-			return className;
-		} else {
-			return null;
-		}
-	}
+    private void deleteImports(CompilationUnit compilationUnit) {
+        NodeList<ImportDeclaration> imports = compilationUnit.getImports();
+        List<String> deleteImports = Arrays.asList(
+                "org.slf4j.Logger",
+                "org.slf4j.LoggerFactory",
+                "org.apache.log4j.Logger");
+        imports.stream()
+                .filter(it -> {
+                    return deleteImports.contains(it.getName().asString());
+                })
+                // 不可边循环边删除,所以先filter出一个集合再删除
+                .collect(Collectors.toList())
+                .forEach(ImportDeclaration::remove);
+        String str = "lombok.extern.slf4j.Slf4j";
+        boolean notExist = imports.stream()
+                .filter(str::equals)
+                .count() == 0;
+        if (notExist) {
+            imports.add(new ImportDeclaration(str, false, false));
+        }
+    }
 
-	private boolean testExistClassName(String line) {
-		Pattern p = Pattern.compile("public\\s+(class|enum)\\s+\\w.*");
-		Matcher matcher = p.matcher(line);
-		return matcher.find();
-	}
 }
