@@ -31,18 +31,18 @@ public class ReplaceGeneralCodeJob {
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        LexicalPreservingPrinter.setup(compilationUnit);
-        List<ClassOrInterfaceDeclaration> clazzList = compilationUnit.findAll(ClassOrInterfaceDeclaration.class);
-        boolean changeFlag = false;
-        for (ClassOrInterfaceDeclaration c : clazzList) {
-            if (test(c)) {
+        List<String> classNames = compilationUnit.findAll(ClassOrInterfaceDeclaration.class).stream()
+                .filter(this::test)
+                .map(ClassOrInterfaceDeclaration::getNameAsString)
+                .collect(Collectors.toList());
+        if (!classNames.isEmpty()) {
+            LexicalPreservingPrinter.setup(compilationUnit);
+            for (String string : classNames) {
+                ClassOrInterfaceDeclaration c = compilationUnit.getClassByName(string).get();
                 c.getMethods().stream()
                         .forEach(it -> c.remove(it));
                 addAnnotation(c);
-                changeFlag |= true;
             }
-        }
-        if (changeFlag) {
             log.info("当前文件符合转换,class name:{}", file.getName());
             addImports(compilationUnit);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);

@@ -11,7 +11,6 @@ import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.printer.PrettyPrinterConfiguration;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import com.wangym.lombok.job.log.LogPackage;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +35,6 @@ public class ReplaceLoggerJob {
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes,"utf-8"));
-        LexicalPreservingPrinter.setup(compilationUnit);
         List<ClassOrInterfaceDeclaration> clazzList = compilationUnit.findAll(ClassOrInterfaceDeclaration.class);
         if (clazzList.size() != 1) {
             return;
@@ -52,15 +50,14 @@ public class ReplaceLoggerJob {
             }
         }
         if (pkg != null) {
+            LexicalPreservingPrinter.setup(compilationUnit);
             log.info("当前文件符合转换,class name:{},logger name:{}", className, pkg.getLoggerName());
             // 清除原来的log声明
             pkg.getField().remove();
             addAnnotation(c);
             deleteImports(compilationUnit);
-            PrettyPrinterConfiguration conf = new PrettyPrinterConfiguration();
-            // 默认取的是系统变量line.separator，未保持一致，显式指定为unix风格换行符
-            conf.setEndOfLineCharacter("\n");
-            String newBody = LexicalPreservingPrinter.print(compilationUnit).replaceAll(pkg.getLoggerName() + ".", "log.");
+            String newBody = LexicalPreservingPrinter.print(compilationUnit);
+            newBody = newBody.replaceAll(pkg.getLoggerName() + ".", "log.");
             // 以utf-8编码的方式写入文件中
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
