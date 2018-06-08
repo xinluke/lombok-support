@@ -117,7 +117,7 @@ public class ReplaceLoggerJob {
                 })
                 // 不可边循环边删除,所以先filter出一个集合再删除
                 .collect(Collectors.toList())
-                .forEach(ImportDeclaration::remove);
+                .forEach(it -> compilationUnit.remove(it));
         String str = "lombok.extern.slf4j.Slf4j";
         boolean notExist = imports.stream()
                 .filter(str::equals)
