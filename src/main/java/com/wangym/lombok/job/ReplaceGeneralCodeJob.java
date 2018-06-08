@@ -46,6 +46,8 @@ public class ReplaceGeneralCodeJob {
             log.info("当前文件符合转换,class name:{}", file.getName());
             addImports(compilationUnit);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
+            // 暂时使用正则表达式的方式修正格式错误的问题
+            newBody = newBody.replaceAll(";import", ";\n\nimport");
             // 以utf-8编码的方式写入文件中
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
