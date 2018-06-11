@@ -4,11 +4,12 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.ReturnStmt;
+import com.github.javaparser.ast.type.PrimitiveType;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,7 +19,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static com.github.javaparser.ast.Modifier.PUBLIC;
 
 /**
  * @author wangym
@@ -32,6 +36,7 @@ public class ReplaceGeneralCodeJob {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
         List<String> classNames = compilationUnit.findAll(ClassOrInterfaceDeclaration.class).stream()
+                .filter(c -> !c.isInterface())
                 .filter(this::test)
                 .map(ClassOrInterfaceDeclaration::getNameAsString)
                 .collect(Collectors.toList());
@@ -60,7 +65,8 @@ public class ReplaceGeneralCodeJob {
         if (!fields.isEmpty() && (fields.size() * 2 == methods.size())) {
             List<String> virtualMethods = fields.stream()
                     .map(it -> {
-                        return Arrays.asList(it.createGetter().toString(), it.createSetter().toString());
+                        MethodDeclaration getter = createGetter(it);
+                        return Arrays.asList(getter.toString(), it.createSetter().toString());
                     })
                     .flatMap(List::stream)
                     .collect(Collectors.toList());
@@ -95,5 +101,35 @@ public class ReplaceGeneralCodeJob {
         if (notExist) {
             imports.add(new ImportDeclaration(str, false, false));
         }
+    }
+
+    public MethodDeclaration createGetter(FieldDeclaration field) {
+        if (field.getVariables().size() != 1) {
+            throw new IllegalStateException("You can use this only when the field declares only 1 variable name");
+        }
+        Optional<ClassOrInterfaceDeclaration> parentClass = field.getAncestorOfType(ClassOrInterfaceDeclaration.class);
+        Optional<EnumDeclaration> parentEnum = field.getAncestorOfType(EnumDeclaration.class);
+        if (!(parentClass.isPresent() || parentEnum.isPresent())
+                || (parentClass.isPresent() && parentClass.get().isInterface())) {
+            throw new IllegalStateException("You can use this only when the field is attached to a class or an enum");
+        }
+        VariableDeclarator variable = field.getVariable(0);
+        String fieldName = variable.getNameAsString();
+        String fieldNameUpper = fieldName.toUpperCase().substring(0, 1) + fieldName.substring(1, fieldName.length());
+        String finalFieldNameUpper;
+        // 如果是boolean类型的字段，生成isXXX类型的方法
+        if (variable.getType().equals(PrimitiveType.booleanType())) {
+            finalFieldNameUpper = "is" + fieldNameUpper;
+        } else {
+            finalFieldNameUpper = "get" + fieldNameUpper;
+        }
+        final MethodDeclaration getter;
+        getter = parentClass.map(clazz -> clazz.addMethod(finalFieldNameUpper, PUBLIC))
+                .orElseGet(() -> parentEnum.get().addMethod(finalFieldNameUpper, PUBLIC));
+        getter.setType(variable.getType());
+        BlockStmt blockStmt = new BlockStmt();
+        getter.setBody(blockStmt);
+        blockStmt.addStatement(new ReturnStmt(fieldName));
+        return getter;
     }
 }
