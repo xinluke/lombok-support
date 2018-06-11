@@ -57,7 +57,7 @@ public class ReplaceLoggerJob {
             addAnnotation(c);
             deleteImports(compilationUnit);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
-            newBody = newBody.replaceAll(pkg.getLoggerName() + ".", "log.");
+            newBody = newBody.replaceAll(pkg.getLoggerName() + "\\.", "log\\.");
             // 以utf-8编码的方式写入文件中
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
