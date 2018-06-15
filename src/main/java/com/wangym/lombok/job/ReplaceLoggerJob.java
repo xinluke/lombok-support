@@ -124,7 +124,7 @@ public class ReplaceLoggerJob {
                 .forEach(it -> compilationUnit.remove(it));
         String str = "lombok.extern.slf4j.Slf4j";
         boolean notExist = imports.stream()
-                .filter(str::equals)
+                .filter(it->str.equals(it.getName().asString()))
                 .count() == 0;
         if (notExist) {
             imports.add(new ImportDeclaration(str, false, false));

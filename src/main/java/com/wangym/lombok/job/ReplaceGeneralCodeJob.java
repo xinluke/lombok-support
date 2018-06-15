@@ -96,7 +96,7 @@ public class ReplaceGeneralCodeJob {
         NodeList<ImportDeclaration> imports = compilationUnit.getImports();
         String str = "lombok.Data";
         boolean notExist = imports.stream()
-                .filter(str::equals)
+                .filter(it->str.equals(it.getName().asString()))
                 .count() == 0;
         if (notExist) {
             imports.add(new ImportDeclaration(str, false, false));
