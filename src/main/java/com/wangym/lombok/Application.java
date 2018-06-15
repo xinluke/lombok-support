@@ -29,7 +29,7 @@ public class Application {
                 continue;
             }
             String uriStr = resource.getURI().toString();
-            log.info("尝试读取文件：{}", uriStr);
+            log.debug("尝试读取文件：{}", uriStr);
             try {
                 modifyJob.handle(resource.getFile());
                 codeJob.handle(resource.getFile());
