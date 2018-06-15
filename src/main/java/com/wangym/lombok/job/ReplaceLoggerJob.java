@@ -81,9 +81,13 @@ public class ReplaceLoggerJob {
                     if (initializer.isPresent()) {
                         Expression exp = initializer.get();
                         if (exp instanceof MethodCallExpr) {
-                            boolean check = ((MethodCallExpr) exp).getArgument(0).toString().contains(className);
-                            if (check) {
-                                return new LogPackage(field, variable.getNameAsString());
+                            String text = ((MethodCallExpr) exp).getArgument(0).toString();
+                            List<String> targetList = Arrays.asList(className, "getClass");
+                            for (String target : targetList) {
+                                boolean check = text.contains(target);
+                                if (check) {
+                                    return new LogPackage(field, variable.getNameAsString());
+                                }
                             }
                         }
                     }
