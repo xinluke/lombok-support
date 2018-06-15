@@ -12,4 +12,4 @@ mvn clean package -Dmaven.test.skip
 将编译出来的包丢到项目的根路径下，以当前jar为基点，自动搜索下面全部的java文件进行替换。
 
 ## 温馨提示
-对于pom.xml中未引用lombok的依赖的需要自己引入哦
+如果pom.xml中未引用lombok的依赖的需要自己引入哦
