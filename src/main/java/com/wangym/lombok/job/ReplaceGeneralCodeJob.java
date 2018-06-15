@@ -42,12 +42,14 @@ public class ReplaceGeneralCodeJob {
                 .collect(Collectors.toList());
         if (!classNames.isEmpty()) {
             LexicalPreservingPrinter.setup(compilationUnit);
-            for (String string : classNames) {
-                ClassOrInterfaceDeclaration c = compilationUnit.getClassByName(string).get();
-                c.getMethods().stream()
-                        .forEach(it -> c.remove(it));
-                addAnnotation(c);
-            }
+            // 找出符合条件的class进行处理
+            compilationUnit.findAll(ClassOrInterfaceDeclaration.class).stream()
+                    .filter(c -> classNames.contains(c.getNameAsString()))
+                    .forEach(c -> {
+                        c.getMethods().stream()
+                                .forEach(it -> c.remove(it));
+                        addAnnotation(c);
+                    });
             log.info("当前文件符合转换,class name:{}", file.getName());
             addImports(compilationUnit);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
