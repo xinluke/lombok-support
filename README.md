@@ -4,6 +4,10 @@
 对于老项目，想全面拥抱lombok并不容易，需要把老代码翻出来自己替换一遍，费时费力。
 
 因此做了一个小工具，删除冗余代码，替换成lombok注解，解放呆板的模板代码。
+## 功能点
+1. 将Log模板代码替换成@slf4j注解
+2. 将getter、setter模板代码替换成@Data注解
+
 ## 使用方法
 ```
 git clone https://github.com/xinluke/lombok-support.git
