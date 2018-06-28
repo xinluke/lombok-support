@@ -29,6 +29,7 @@ public class JobController {
             for (Resource resource : resources) {
                 diapatch(resource);
             }
+            log.info("执行完成");
         } catch (IOException e) {
             log.info("未执行完成", e);
         }
@@ -39,8 +40,13 @@ public class JobController {
             if (job.canRead(resource.getFilename())) {
                 try {
                     job.handle(resource.getFile());
-                } catch (IOException e) {
-                    log.info("读取文件失败", e);
+                } catch (Exception e) {
+                    try {
+                        String path = resource.getFile().getPath();
+                        log.info("处理文件失败：{}", path, e);
+                    } catch (IOException ex) {
+                        // ignore
+                    }
                 }
             }
         }
