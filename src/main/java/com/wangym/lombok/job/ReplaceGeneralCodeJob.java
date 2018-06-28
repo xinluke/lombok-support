@@ -30,8 +30,17 @@ import static com.github.javaparser.ast.Modifier.PUBLIC;
  */
 @Component
 @Slf4j
-public class ReplaceGeneralCodeJob {
+public class ReplaceGeneralCodeJob implements Job {
 
+    @Override
+    public boolean canRead(String fileName) {
+        if (fileName.endsWith(".java")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
@@ -105,7 +114,7 @@ public class ReplaceGeneralCodeJob {
         }
     }
 
-    public MethodDeclaration createGetter(FieldDeclaration field) {
+    private MethodDeclaration createGetter(FieldDeclaration field) {
         if (field.getVariables().size() != 1) {
             throw new IllegalStateException("You can use this only when the field declares only 1 variable name");
         }

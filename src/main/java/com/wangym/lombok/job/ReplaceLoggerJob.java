@@ -30,8 +30,18 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class ReplaceLoggerJob {
+public class ReplaceLoggerJob implements Job {
 
+    @Override
+    public boolean canRead(String fileName) {
+        if (fileName.endsWith(".java")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes,"utf-8"));
