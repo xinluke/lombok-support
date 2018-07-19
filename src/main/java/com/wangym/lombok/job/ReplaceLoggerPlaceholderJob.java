@@ -130,7 +130,8 @@ public class ReplaceLoggerPlaceholderJob implements Job {
         } else {
             // 假设这个表达式应该由这些部分构成
             if (!(expression instanceof NameExpr) && !(expression instanceof StringLiteralExpr)
-                    && !(expression instanceof MethodCallExpr) && !(expression instanceof FieldAccessExpr)) {
+                    && !(expression instanceof MethodCallExpr) && !(expression instanceof FieldAccessExpr)
+                    && !(expression instanceof EnclosedExpr)) {
                 throw new RuntimeException("unsupport expression");
             }
             list.add(expression);
