@@ -1,5 +1,6 @@
 package com.wangym.lombok.job.log;
 
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import lombok.Getter;
 
@@ -12,11 +13,13 @@ public class LogPackage {
 
     private FieldDeclaration field;
     private String loggerName;
+    private ClassOrInterfaceDeclaration clazz;
 
-    public LogPackage(FieldDeclaration field, String loggerName) {
+    public LogPackage(FieldDeclaration field, String loggerName, ClassOrInterfaceDeclaration clazz) {
         super();
         this.field = field;
         this.loggerName = loggerName;
+        this.clazz = clazz;
     }
 
 }
