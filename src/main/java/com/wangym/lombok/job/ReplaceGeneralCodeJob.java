@@ -3,6 +3,7 @@ package com.wangym.lombok.job;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.AnnotationExpr;
@@ -18,6 +19,7 @@ import org.springframework.util.FileCopyUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -71,7 +73,13 @@ public class ReplaceGeneralCodeJob implements Job {
 
     private boolean test(ClassOrInterfaceDeclaration clazz) {
         ClassOrInterfaceDeclaration c = clazz.clone();
-        List<FieldDeclaration> fields = c.getFields();
+        List<FieldDeclaration> fields = c.getFields().stream()
+                // 排除静态的字段
+                .filter(it -> {
+                    EnumSet<Modifier> sets = it.getModifiers();
+                    return !sets.contains(Modifier.STATIC);
+                })
+                .collect(Collectors.toList());
         List<MethodDeclaration> methods = c.getMethods();
         if (!fields.isEmpty() && (fields.size() * 2 == methods.size())) {
             List<String> virtualMethods = fields.stream()
