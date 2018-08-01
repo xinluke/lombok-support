@@ -132,6 +132,15 @@ public class ReplaceRequestMappingJob implements Job {
                 }
             }
         }
+        List<String> deleteImports = Arrays.asList(
+                "org.springframework.web.bind.annotation.RequestMethod");
+        imports.stream()
+                .filter(it -> {
+                    return deleteImports.contains(it.getName().asString());
+                })
+                // 不可边循环边删除,所以先filter出一个集合再删除
+                .collect(Collectors.toList())
+                .forEach(it -> compilationUnit.remove(it));
         for (String str : addImport) {
             imports.add(new ImportDeclaration(str, false, false));
         }
