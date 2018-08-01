@@ -60,7 +60,10 @@ public class ReplaceRequestMappingJob implements Job {
             NodeList<AnnotationExpr> anns = method.getAnnotations();
             for (AnnotationExpr expr : anns) {
                 if ("RequestMapping".equals(expr.getNameAsString())) {
-                    annList.add((NormalAnnotationExpr) expr);
+                    // 只有有注解有元素的才加入带筛查列表中
+                    if(expr instanceof NormalAnnotationExpr) {
+                        annList.add((NormalAnnotationExpr) expr);
+                    }
                 }
             }
         }
