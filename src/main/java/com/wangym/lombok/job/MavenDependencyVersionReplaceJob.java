@@ -22,15 +22,10 @@ import java.util.Map;
  */
 @Component
 @Slf4j
-public class MavenDependencyVersionReplaceJob implements Job {
+public class MavenDependencyVersionReplaceJob extends AbstractJob {
 
-    @Override
-    public boolean canRead(String fileName) {
-        if (fileName.equals("pom.xml")) {
-            return true;
-        } else {
-            return false;
-        }
+    public MavenDependencyVersionReplaceJob() {
+        super("pom.xml");
     }
 
     @Override
@@ -132,7 +127,7 @@ public class MavenDependencyVersionReplaceJob implements Job {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         String newBody = new String(bytes, "utf-8").replaceAll(" +\n", "");
         // 修正为原来的格式
-        //newBody = newBody.replaceAll("</project>", "</project>\n");
+        // newBody = newBody.replaceAll("</project>", "</project>\n");
         FileCopyUtils.copy(newBody.getBytes("utf-8"), file);
     }
 

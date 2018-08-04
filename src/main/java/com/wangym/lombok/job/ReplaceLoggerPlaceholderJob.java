@@ -21,15 +21,10 @@ import java.util.List;
  */
 @Component
 @Slf4j
-public class ReplaceLoggerPlaceholderJob implements Job {
+public class ReplaceLoggerPlaceholderJob extends AbstractJob {
 
-    @Override
-    public boolean canRead(String fileName) {
-        if (fileName.endsWith(".java")) {
-            return true;
-        } else {
-            return false;
-        }
+    public ReplaceLoggerPlaceholderJob() {
+        super(".java");
     }
 
     @Override

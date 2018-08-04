@@ -32,16 +32,12 @@ import static com.github.javaparser.ast.Modifier.PUBLIC;
  */
 @Component
 @Slf4j
-public class ReplaceGeneralCodeJob implements Job {
+public class ReplaceGeneralCodeJob extends AbstractJob {
 
-    @Override
-    public boolean canRead(String fileName) {
-        if (fileName.endsWith(".java")) {
-            return true;
-        } else {
-            return false;
-        }
+    public ReplaceGeneralCodeJob() {
+        super(".java");
     }
+
     @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
@@ -115,7 +111,7 @@ public class ReplaceGeneralCodeJob implements Job {
         NodeList<ImportDeclaration> imports = compilationUnit.getImports();
         String str = "lombok.Data";
         boolean notExist = imports.stream()
-                .filter(it->str.equals(it.getName().asString()))
+                .filter(it -> str.equals(it.getName().asString()))
                 .count() == 0;
         if (notExist) {
             imports.add(new ImportDeclaration(str, false, false));

@@ -25,7 +25,11 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class ReplaceRequestMappingJob implements Job {
+public class ReplaceRequestMappingJob extends AbstractJob {
+
+    public ReplaceRequestMappingJob() {
+        super(".java");
+    }
 
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {

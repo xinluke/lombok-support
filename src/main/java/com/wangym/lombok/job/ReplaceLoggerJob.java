@@ -29,15 +29,10 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class ReplaceLoggerJob implements Job {
+public class ReplaceLoggerJob extends AbstractJob {
 
-    @Override
-    public boolean canRead(String fileName) {
-        if (fileName.endsWith(".java")) {
-            return true;
-        } else {
-            return false;
-        }
+    public ReplaceLoggerJob() {
+        super(".java");
     }
 
     @Override
