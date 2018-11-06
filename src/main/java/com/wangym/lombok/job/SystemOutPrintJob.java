@@ -96,7 +96,7 @@ public class SystemOutPrintJob extends AbstractJob {
                 boolean filter(MethodCallExpr it) {
                     Optional<Expression> scope = it.getScope();
                     if (scope.isPresent() && "System.out".equals(scope.get().toString())
-                            && "println".equals(it.getNameAsString())) {
+                            && it.getNameAsString().startsWith("print")) {
                         return true;
                     }
                     return false;
