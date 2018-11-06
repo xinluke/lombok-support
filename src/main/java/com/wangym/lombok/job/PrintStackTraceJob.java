@@ -5,12 +5,8 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
-import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
@@ -112,25 +108,6 @@ public class PrintStackTraceJob extends AbstractJob {
                 .collect(Collectors.toList());
     }
 
-    @Getter
-    public abstract static class ClassMehodCallMapping {
-        private ClassOrInterfaceDeclaration c;
-        private List<MethodCallExpr> exprs;
-
-        public ClassMehodCallMapping(ClassOrInterfaceDeclaration c) {
-            super();
-            this.c = c;
-            List<MethodCallExpr> result = new ArrayList<>();
-            result.addAll(c.findAll(MethodCallExpr.class));
-            this.exprs = result.stream()
-                    .filter(this::filter)
-                    .collect(Collectors.toList());
-        }
-
-        abstract boolean filter(MethodCallExpr it);
-
-    }
-
     private void process(List<MethodCallExpr> exprs) {
         exprs.forEach(this::process);
     }
@@ -144,7 +121,7 @@ public class PrintStackTraceJob extends AbstractJob {
         String str = "log";
         expr.setScope(new NameExpr(str));
         expr.setName("error");
-        expr.getArguments().add(new NameExpr("unexpected exception,please check"));
+        expr.getArguments().add(new StringLiteralExpr("unexpected exception,please check"));
         expr.getArguments().add(new NameExpr(var));
     }
 
