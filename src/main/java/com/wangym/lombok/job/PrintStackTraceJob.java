@@ -38,7 +38,7 @@ public class PrintStackTraceJob extends AbstractJob {
         if (methodCallList.isEmpty()) {
             return;
         }
-        log.info("存在打印堆栈的代码块，将进行替换");
+        log.info("存在[e.printStackTrace()]的代码块，将进行替换");
         LexicalPreservingPrinter.setup(compilationUnit);
         methodCallList.forEach(it -> process(it.getExprs()));
         methodCallList.forEach(it -> addAnnotation(it.getC()));
