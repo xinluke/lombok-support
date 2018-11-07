@@ -14,7 +14,6 @@ import org.springframework.util.FileCopyUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,17 +60,6 @@ public class PrintStackTraceJob extends AbstractJob {
 
     private void deleteImports(CompilationUnit compilationUnit) {
         NodeList<ImportDeclaration> imports = compilationUnit.getImports();
-        List<String> deleteImports = Arrays.asList(
-                "org.slf4j.Logger",
-                "org.slf4j.LoggerFactory",
-                "org.apache.log4j.Logger");
-        imports.stream()
-                .filter(it -> {
-                    return deleteImports.contains(it.getName().asString());
-                })
-                // 不可边循环边删除,所以先filter出一个集合再删除
-                .collect(Collectors.toList())
-                .forEach(it -> compilationUnit.remove(it));
         String str = "lombok.extern.slf4j.Slf4j";
         boolean notExist = imports.stream()
                 .filter(it -> str.equals(it.getName().asString()))
