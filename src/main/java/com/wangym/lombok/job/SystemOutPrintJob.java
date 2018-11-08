@@ -2,10 +2,10 @@ package com.wangym.lombok.job;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.ImportDeclaration;
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -40,34 +40,13 @@ public class SystemOutPrintJob extends AbstractJob {
         }
         log.info("存在[System.out.println()]代码块，将进行替换");
         LexicalPreservingPrinter.setup(compilationUnit);
+        Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
         methodCallList.forEach(it -> process(it.getExprs()));
-        methodCallList.forEach(it -> addAnnotation(it.getC()));
-        deleteImports(compilationUnit);
+        methodCallList.forEach(it -> addAnnotation(it.getC(), meta));
+        addImports(compilationUnit, meta);
         String newBody = LexicalPreservingPrinter.print(compilationUnit);
         // 以utf-8编码的方式写入文件中
         FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
-    }
-
-    private void addAnnotation(ClassOrInterfaceDeclaration c) {
-        NodeList<AnnotationExpr> anns = c.getAnnotations();
-        String name = "Slf4j";
-        boolean notExist = anns.stream()
-                .filter(it -> name.equals(it.getNameAsString()))
-                .count() == 0;
-        if (notExist) {
-            anns.add(new MarkerAnnotationExpr(name));
-        }
-    }
-
-    private void deleteImports(CompilationUnit compilationUnit) {
-        NodeList<ImportDeclaration> imports = compilationUnit.getImports();
-        String str = "lombok.extern.slf4j.Slf4j";
-        boolean notExist = imports.stream()
-                .filter(it -> str.equals(it.getName().asString()))
-                .count() == 0;
-        if (notExist) {
-            imports.add(new ImportDeclaration(str, false, false));
-        }
     }
 
     private List<ClassMehodCallMapping> extractAllMethodCallExpr(CompilationUnit compilationUnit) {

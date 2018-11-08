@@ -8,7 +8,9 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
-import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import com.wangym.lombok.job.log.LogPackage;
 import lombok.extern.slf4j.Slf4j;
@@ -51,9 +53,11 @@ public class ReplaceLoggerJob extends AbstractJob {
         }
         LexicalPreservingPrinter.setup(compilationUnit);
         renameLoggerRenam(filterMethodCalls);
+        Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
         // 清除原来的log声明
         pkg.getField().remove();
-        addAnnotation(pkg.getClazz());
+        addAnnotation(pkg.getClazz(), meta);
+        addImports(compilationUnit, meta);
         deleteImports(compilationUnit);
         String newBody = LexicalPreservingPrinter.print(compilationUnit);
         // 以utf-8编码的方式写入文件中
@@ -148,17 +152,6 @@ public class ReplaceLoggerJob extends AbstractJob {
         throw new RuntimeException("未期待的异常");
     }
 
-    private void addAnnotation(ClassOrInterfaceDeclaration c) {
-        NodeList<AnnotationExpr> anns = c.getAnnotations();
-        String name = "Slf4j";
-        boolean notExist = anns.stream()
-                .filter(it -> name.equals(it.getNameAsString()))
-                .count() == 0;
-        if (notExist) {
-            anns.add(new MarkerAnnotationExpr(name));
-        }
-    }
-
     private void deleteImports(CompilationUnit compilationUnit) {
         NodeList<ImportDeclaration> imports = compilationUnit.getImports();
         List<String> deleteImports = Arrays.asList(
@@ -172,13 +165,6 @@ public class ReplaceLoggerJob extends AbstractJob {
                 // 不可边循环边删除,所以先filter出一个集合再删除
                 .collect(Collectors.toList())
                 .forEach(it -> compilationUnit.remove(it));
-        String str = "lombok.extern.slf4j.Slf4j";
-        boolean notExist = imports.stream()
-                .filter(it -> str.equals(it.getName().asString()))
-                .count() == 0;
-        if (notExist) {
-            imports.add(new ImportDeclaration(str, false, false));
-        }
     }
 
 }

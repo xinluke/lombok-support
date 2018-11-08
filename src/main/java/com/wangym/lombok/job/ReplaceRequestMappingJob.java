@@ -9,7 +9,6 @@ import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
@@ -102,19 +101,6 @@ public class ReplaceRequestMappingJob extends AbstractJob {
         newBody = newBody.replaceAll(";import", ";\n\nimport");
         // 以utf-8编码的方式写入文件中
         FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
-    }
-
-    @Getter
-    static class Metadata {
-        private String annName;
-        private String ImportPkg;
-
-        public Metadata(String annName, String importPkg) {
-            super();
-            this.annName = annName;
-            ImportPkg = importPkg;
-        }
-
     }
 
     private void addImports(CompilationUnit compilationUnit, Set<Metadata> cache) {

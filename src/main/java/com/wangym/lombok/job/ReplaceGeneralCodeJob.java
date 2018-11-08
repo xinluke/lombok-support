@@ -2,12 +2,8 @@ package com.wangym.lombok.job;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Modifier;
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
-import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.type.PrimitiveType;
@@ -49,16 +45,17 @@ public class ReplaceGeneralCodeJob extends AbstractJob {
                 .collect(Collectors.toList());
         if (!classNames.isEmpty()) {
             LexicalPreservingPrinter.setup(compilationUnit);
+            Metadata meta = new Metadata("Data", "lombok.Data");
             // 找出符合条件的class进行处理
             compilationUnit.findAll(ClassOrInterfaceDeclaration.class).stream()
                     .filter(c -> classNames.contains(c.getNameAsString()))
                     .forEach(c -> {
                         c.getMethods().stream()
                                 .forEach(it -> c.remove(it));
-                        addAnnotation(c);
+                        addAnnotation(c, meta);
                     });
             log.info("当前文件符合转换,class name:{}", file.getName());
-            addImports(compilationUnit);
+            addImports(compilationUnit, meta);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
             // 暂时使用正则表达式的方式修正格式错误的问题
             newBody = newBody.replaceAll(";import", ";\n\nimport");
@@ -94,28 +91,6 @@ public class ReplaceGeneralCodeJob extends AbstractJob {
             return count == 0;
         }
         return false;
-    }
-
-    private void addAnnotation(ClassOrInterfaceDeclaration c) {
-        NodeList<AnnotationExpr> anns = c.getAnnotations();
-        String name = "Data";
-        boolean notExist = anns.stream()
-                .filter(it -> name.equals(it.getNameAsString()))
-                .count() == 0;
-        if (notExist) {
-            anns.add(new MarkerAnnotationExpr(name));
-        }
-    }
-
-    private void addImports(CompilationUnit compilationUnit) {
-        NodeList<ImportDeclaration> imports = compilationUnit.getImports();
-        String str = "lombok.Data";
-        boolean notExist = imports.stream()
-                .filter(it -> str.equals(it.getName().asString()))
-                .count() == 0;
-        if (notExist) {
-            imports.add(new ImportDeclaration(str, false, false));
-        }
     }
 
     private MethodDeclaration createGetter(FieldDeclaration field) {
