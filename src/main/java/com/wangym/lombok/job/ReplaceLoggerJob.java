@@ -48,11 +48,10 @@ public class ReplaceLoggerJob extends AbstractJob {
         }
         List<MethodCallExpr> methodCallList = extractAllMethodCallExpr(compilationUnit);
         List<MethodCallExpr> filterMethodCalls = extractLoggerMethodCallExpr(pkg.getLoggerName(), methodCallList);
-        if (filterMethodCalls.isEmpty()) {
-            return;
-        }
         LexicalPreservingPrinter.setup(compilationUnit);
-        renameLoggerRenam(filterMethodCalls);
+        if (!filterMethodCalls.isEmpty()) {
+            renameLogger(filterMethodCalls);
+        }
         Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
         // 清除原来的log声明
         pkg.getField().remove();
@@ -104,7 +103,7 @@ public class ReplaceLoggerJob extends AbstractJob {
         return filter;
     }
 
-    private void renameLoggerRenam(List<MethodCallExpr> loggerCall) {
+    private void renameLogger(List<MethodCallExpr> loggerCall) {
         String str = "log";
         // 对于logger的全部方法调用，替换变量名
         for (MethodCallExpr po : loggerCall) {
