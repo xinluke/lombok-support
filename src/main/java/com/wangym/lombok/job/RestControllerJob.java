@@ -22,10 +22,7 @@ import java.util.stream.Collectors;
  * @version 创建时间：2018年8月2日 下午8:31:53
  */
 @Component
-public class RestControllerJob extends AbstractJob {
-    public RestControllerJob() {
-        super(".java");
-    }
+public class RestControllerJob extends JavaJob {
 
     @Override
     public void handle(File file) throws IOException {

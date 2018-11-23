@@ -3,7 +3,9 @@ package com.wangym.lombok.job;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,11 +23,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class PrintStackTraceJob extends AbstractJob {
-
-    public PrintStackTraceJob() {
-        super(".java");
-    }
+public class PrintStackTraceJob extends JavaJob {
 
     @Override
     public void handle(File file) throws IOException {

@@ -21,11 +21,7 @@ import java.util.List;
  */
 @Component
 @Slf4j
-public class ReplaceLoggerPlaceholderJob extends AbstractJob {
-
-    public ReplaceLoggerPlaceholderJob() {
-        super(".java");
-    }
+public class ReplaceLoggerPlaceholderJob extends JavaJob {
 
     @Override
     public void handle(File file) throws IOException {

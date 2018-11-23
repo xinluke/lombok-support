@@ -28,11 +28,7 @@ import static com.github.javaparser.ast.Modifier.PUBLIC;
  */
 @Component
 @Slf4j
-public class ReplaceGeneralCodeJob extends AbstractJob {
-
-    public ReplaceGeneralCodeJob() {
-        super(".java");
-    }
+public class ReplaceGeneralCodeJob extends JavaJob {
 
     @Override
     public void handle(File file) throws IOException {

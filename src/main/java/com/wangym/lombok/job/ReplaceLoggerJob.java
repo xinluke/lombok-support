@@ -31,11 +31,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class ReplaceLoggerJob extends AbstractJob {
-
-    public ReplaceLoggerJob() {
-        super(".java");
-    }
+public class ReplaceLoggerJob extends JavaJob {
 
     @Override
     public void handle(File file) throws IOException {

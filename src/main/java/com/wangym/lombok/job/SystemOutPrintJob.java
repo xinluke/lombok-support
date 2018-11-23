@@ -24,11 +24,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class SystemOutPrintJob extends AbstractJob {
-
-    public SystemOutPrintJob() {
-        super(".java");
-    }
+public class SystemOutPrintJob extends JavaJob {
 
     @Override
     public void handle(File file) throws IOException {
