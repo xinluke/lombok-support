@@ -2,14 +2,17 @@ package com.wangym.lombok.job;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,6 +44,8 @@ public class SystemOutPrintJob extends JavaJob {
         methodCallList.forEach(it -> addAnnotation(it.getC(), meta));
         addImports(compilationUnit, meta);
         String newBody = LexicalPreservingPrinter.print(compilationUnit);
+        // 暂时使用直接替换的方式修正System.out.println();代码块无法被删除的问题
+        newBody = StringUtils.replace(newBody, "System.out.println();", "");
         // 以utf-8编码的方式写入文件中
         FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
     }
@@ -79,6 +84,20 @@ public class SystemOutPrintJob extends JavaJob {
     }
 
     private void process(MethodCallExpr expr) {
+        NodeList<Expression> args = expr.getArguments();
+        int size = args.size();
+        if (size == 0) {
+            // System.out.println();是没有意义的，直接删除掉(现在是不起作用的)
+            expr.remove(expr);
+            return;
+        }
+        if (size == 1) {
+            Expression arg = args.get(0);
+            // 如果是一个变量
+            if (arg instanceof NameExpr) {
+                args.add(0, new StringLiteralExpr("print:{}"));
+            }
+        }
         String str = "log";
         expr.setScope(new NameExpr(str));
         expr.setName("info");
