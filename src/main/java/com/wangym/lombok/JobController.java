@@ -7,6 +7,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -39,7 +40,9 @@ public class JobController {
         for (Job job : jobList) {
             if (job.canRead(resource.getFilename())) {
                 try {
-                    job.handle(resource.getFile());
+                    File file = resource.getFile();
+                    log.info("读取文件：{}", file.getAbsolutePath());
+                    job.handle(file);
                 } catch (Exception e) {
                     try {
                         String path = resource.getFile().getPath();
