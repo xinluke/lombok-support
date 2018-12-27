@@ -22,6 +22,6 @@ public class SystemOutPrintJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/Application.java"));
+        job.handle(new File("c:/DeleteMsgDataService.java"));
     }
 }
