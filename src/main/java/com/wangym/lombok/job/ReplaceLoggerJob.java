@@ -3,7 +3,6 @@ package com.wangym.lombok.job;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
@@ -11,15 +10,16 @@ import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.visitor.ModifierVisitor;
+import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.log.LogPackage;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -33,118 +33,86 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ReplaceLoggerJob extends JavaJob {
 
+    private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
+
     @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        List<FieldDeclaration> logsFieldDecList = extractLoggerFieldDeclaration(compilationUnit);
-        LogPackage pkg = getLogPackage(logsFieldDecList);
-        if (pkg == null) {
-            return;
+        LoggerVisitor visitor = new LoggerVisitor();
+        // 预检查
+        compilationUnit.clone().findAll(FieldDeclaration.class).forEach(it -> visitor.visit(it, null));
+        if (visitor.isModify()) {
+            log.info("清除原来的log声明，替换成@slf4j形式");
+            LexicalPreservingPrinter.setup(compilationUnit);
+            compilationUnit.accept(visitor, null);
+            addImports(compilationUnit, meta);
+            deleteImports(compilationUnit);
+            String newBody = LexicalPreservingPrinter.print(compilationUnit);
+            // 以utf-8编码的方式写入文件中
+            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
-        List<MethodCallExpr> methodCallList = extractAllMethodCallExpr(compilationUnit);
-        List<MethodCallExpr> filterMethodCalls = extractLoggerMethodCallExpr(pkg.getLoggerName(), methodCallList);
-        LexicalPreservingPrinter.setup(compilationUnit);
-        if (!filterMethodCalls.isEmpty()) {
-            renameLogger(filterMethodCalls);
-        }
-        Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
-        // 清除原来的log声明
-        pkg.getField().remove();
-        addAnnotation(pkg.getClazz(), meta);
-        addImports(compilationUnit, meta);
-        deleteImports(compilationUnit);
-        String newBody = LexicalPreservingPrinter.print(compilationUnit);
-        // 以utf-8编码的方式写入文件中
-        FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
     }
 
-    private List<FieldDeclaration> extractLoggerFieldDeclaration(CompilationUnit compilationUnit) {
-        List<FieldDeclaration> list = compilationUnit.findAll(FieldDeclaration.class);
-        List<FieldDeclaration> result = new ArrayList<>();
-        for (FieldDeclaration field : list) {
+    @Getter
+    class LoggerVisitor extends ModifierVisitor<Void> {
+        private boolean modify = false;
+        private String loggerName;
+
+        @Override
+        public Visitable visit(FieldDeclaration field, Void arg) {
+            if (!field.isPrivate()) {
+                return super.visit(field, arg);
+            }
             List<VariableDeclarator> variableList = field.findAll(VariableDeclarator.class);
             // 假设Logger的声明都是一个变量一个声明，不存在int x=3,y=4;这样的形式
             if (variableList.size() == 1) {
                 VariableDeclarator variable = variableList.get(0);
                 // 找出关于"Logger"的字段声明
                 if ("Logger".equals(variable.getTypeAsString())) {
-                    result.add(field);
+                    Optional<Expression> initializer = variable.getInitializer();
+                    Expression exp = initializer.get();
+                    if (exp instanceof MethodCallExpr) {
+                        String text = ((MethodCallExpr) exp).getArgument(0).toString();
+                        ClassOrInterfaceDeclaration parent = field.findParent(ClassOrInterfaceDeclaration.class).get();
+                        String className = parent.getNameAsString();
+                        List<String> targetList = Arrays.asList(className, "getClass");
+                        for (String target : targetList) {
+                            boolean check = text.contains(target);
+                            if (check) {
+                                // 设置标志位
+                                modify = true;
+                                // 保存loggerName
+                                loggerName = variable.getNameAsString();
+                                addAnnotation(parent, meta);
+                                // 删除掉代码写的Logger声明，换成注解形式
+                                return null;
+                            }
+                        }
+                    }
                 }
             }
+            return super.visit(field, arg);
         }
-        return result;
-    }
 
-    private List<MethodCallExpr> extractAllMethodCallExpr(CompilationUnit compilationUnit) {
-        List<ClassOrInterfaceDeclaration> classList = compilationUnit.findAll(ClassOrInterfaceDeclaration.class);
-        List<MethodCallExpr> result = new ArrayList<>();
-        for (ClassOrInterfaceDeclaration c : classList) {
-            result.addAll(c.findAll(MethodCallExpr.class));
-        }
-        return result;
-    }
-
-    private List<MethodCallExpr> extractLoggerMethodCallExpr(String loggerName, List<MethodCallExpr> list) {
-        // 提取出是log的方法调用
-        List<MethodCallExpr> filter = new ArrayList<>();
-        for (MethodCallExpr po : list) {
-            if (!po.getScope().isPresent()) {
-                continue;
+        @Override
+        public Visitable visit(MethodCallExpr n, Void arg) {
+            if (!n.getScope().isPresent()) {
+                return super.visit(n, arg);
             }
-            if (loggerName.equals(po.getScope().get().toString())) {
-                filter.add(po);
+            if (loggerName.equals(n.getScope().get().toString())) {
+                renameLogger(n);
+                return n;
             }
+            return super.visit(n, arg);
         }
-        return filter;
-    }
 
-    private void renameLogger(List<MethodCallExpr> loggerCall) {
-        String str = "log";
-        // 对于logger的全部方法调用，替换变量名
-        for (MethodCallExpr po : loggerCall) {
-            po.setScope(new NameExpr(str));
+        private void renameLogger(MethodCallExpr loggerCall) {
+            String str = "log";
+            // 对于logger的全部方法调用，替换变量名
+            loggerCall.setScope(new NameExpr(str));
         }
-    }
 
-    private LogPackage getLogPackage(List<FieldDeclaration> loggerFields) {
-        // 暂时只能处理一个编译单元最多存在一个Logger的情况
-        // 因为如果存在多个，则要判断所属的类作用范围，并且要在正确的类中填充注解，太复杂
-        if (loggerFields.size() != 1) {
-            return null;
-        }
-        FieldDeclaration field = loggerFields.get(0);
-        // 如果logger的声明不是私有的，不能保证当前编译单元之外的类使用了此变量
-        if (!field.isPrivate()) {
-            return null;
-        }
-        List<VariableDeclarator> variableList = field.findAll(VariableDeclarator.class);
-        // 假设一个FieldDeclaration只定义一个VariableDeclarator
-        VariableDeclarator variable = variableList.get(0);
-        Optional<Expression> initializer = variable.getInitializer();
-        Expression exp = initializer.get();
-        if (exp instanceof MethodCallExpr) {
-            String text = ((MethodCallExpr) exp).getArgument(0).toString();
-            ClassOrInterfaceDeclaration clazz = getClassName(field);
-            String className = clazz.getNameAsString();
-            List<String> targetList = Arrays.asList(className, "getClass");
-            for (String target : targetList) {
-                boolean check = text.contains(target);
-                if (check) {
-                    return new LogPackage(field, variable.getNameAsString(), clazz);
-                }
-            }
-        }
-        return null;
-    }
-
-    private ClassOrInterfaceDeclaration getClassName(FieldDeclaration field) {
-        Node node = field.getParentNode().get();
-        if (node instanceof ClassOrInterfaceDeclaration) {
-            ClassOrInterfaceDeclaration c = (ClassOrInterfaceDeclaration) node;
-            return c;
-        }
-        throw new RuntimeException("未期待的异常");
     }
 
     private void deleteImports(CompilationUnit compilationUnit) {
