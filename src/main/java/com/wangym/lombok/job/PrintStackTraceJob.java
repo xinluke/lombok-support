@@ -2,6 +2,7 @@ package com.wangym.lombok.job;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
@@ -52,6 +53,8 @@ public class PrintStackTraceJob extends JavaJob {
             if ("printStackTrace".equals(it.getName().toString()) && it.getArguments().isEmpty()) {
                 // 设置标志位
                 modify = true;
+                ClassOrInterfaceDeclaration parent = it.findParent(ClassOrInterfaceDeclaration.class).get();
+                addAnnotation(parent, meta);
                 return process(it);
             }
             return super.visit(it, arg);
