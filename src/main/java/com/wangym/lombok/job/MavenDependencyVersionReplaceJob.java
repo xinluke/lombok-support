@@ -7,7 +7,6 @@ import org.dom4j.Element;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
-import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.*;
@@ -20,7 +19,7 @@ import java.util.Map;
  * @author wangym
  * @version 创建时间：2018年6月25日 下午1:40:20
  */
-@Component
+//@Component
 @Slf4j
 public class MavenDependencyVersionReplaceJob extends AbstractJob {
 
@@ -29,7 +28,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
     }
 
     @Override
-    public void handle(File file) {
+    public void exec(File file) {
         try {
             doHandle(file);
         } catch (Exception e) {

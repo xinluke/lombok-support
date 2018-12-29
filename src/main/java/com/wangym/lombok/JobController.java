@@ -42,7 +42,7 @@ public class JobController {
                 try {
                     File file = resource.getFile();
                     log.info("读取文件：{}", file.getAbsolutePath());
-                    job.handle(file);
+                    job.exec(file);
                 } catch (Exception e) {
                     try {
                         String path = resource.getFile().getPath();

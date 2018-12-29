@@ -11,6 +11,6 @@ public interface Job {
 
     boolean canRead(String fileName);
 
-    void handle(File file) throws IOException;
+    void exec(File file) throws IOException;
 
 }

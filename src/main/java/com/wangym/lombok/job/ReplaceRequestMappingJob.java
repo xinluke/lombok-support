@@ -41,15 +41,6 @@ public class ReplaceRequestMappingJob extends JavaJob {
     }
 
     @Override
-    public boolean canRead(String fileName) {
-        if (fileName.endsWith(".java")) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
