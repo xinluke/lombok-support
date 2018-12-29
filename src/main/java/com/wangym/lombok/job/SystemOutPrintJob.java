@@ -4,10 +4,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
-import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
@@ -72,8 +69,8 @@ public class SystemOutPrintJob extends JavaJob {
             }
             if (size == 1) {
                 Expression arg = args.get(0);
-                // 如果是一个变量
-                if (arg instanceof NameExpr) {
+                // 如果判断参数类型不是String的话就应该包装print
+                if (!(arg instanceof StringLiteralExpr|| arg instanceof BinaryExpr)) {
                     args.add(0, new StringLiteralExpr("print:{}"));
                 }
             }
