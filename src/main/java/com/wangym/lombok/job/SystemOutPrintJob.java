@@ -50,6 +50,7 @@ public class SystemOutPrintJob extends JavaJob {
         @Override
         public Visitable visit(MethodCallExpr n, Void arg) {
             Optional<Expression> scope = n.getScope();
+            // 找出System.out.println();和System.out.print();
             if (scope.isPresent() && "System.out".equals(scope.get().toString())
                     && n.getNameAsString().startsWith("print")) {
                 modify = true;
