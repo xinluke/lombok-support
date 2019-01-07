@@ -8,7 +8,10 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.visitor.ModifierVisitor;
+import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
@@ -44,33 +47,48 @@ public class ReplaceRequestMappingJob extends JavaJob {
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        List<MethodDeclaration> list = compilationUnit.findAll(MethodDeclaration.class);
-        List<NormalAnnotationExpr> annList = new ArrayList<>();
-        for (MethodDeclaration method : list) {
+        RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor();
+        compilationUnit.clone().accept(visitor, null);
+        if (visitor.isModify()) {
+            log.info("存在[@RequestMapping旧版的写法]代码块，将进行替换");
+            LexicalPreservingPrinter.setup(compilationUnit);
+            compilationUnit.accept(visitor, null);
+            visitor.getMetaDataList().forEach(meta -> addImports(compilationUnit, meta));
+            deleteImports(compilationUnit);
+            String newBody = LexicalPreservingPrinter.print(compilationUnit);
+            // 以utf-8编码的方式写入文件中
+            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
+        }
+    }
+
+    @Getter
+    class RequestMappingConstructorVisitor extends ModifierVisitor<Void> {
+        private boolean modify = false;
+        private Set<Metadata> metaDataList = new HashSet<>();
+
+        @Override
+        public Visitable visit(MethodDeclaration method, Void arg) {
             NodeList<AnnotationExpr> anns = method.getAnnotations();
             for (AnnotationExpr expr : anns) {
                 if ("RequestMapping".equals(expr.getNameAsString())) {
                     // 只有有注解有元素的才加入带筛查列表中
-                    if(expr instanceof NormalAnnotationExpr) {
-                        annList.add((NormalAnnotationExpr) expr);
+                    if (expr instanceof NormalAnnotationExpr) {
+                        doHandle((NormalAnnotationExpr) expr);
+                        return method;
                     }
                 }
             }
+            return super.visit(method, arg);
         }
-        if (annList.isEmpty()) {
-            return;
-        }
-        LexicalPreservingPrinter.setup(compilationUnit);
-        // 缓存添加的注解
-        Set<Metadata> cache = new HashSet<>();
-        for (NormalAnnotationExpr expr : annList) {
+
+        private void doHandle(NormalAnnotationExpr expr) {
             NodeList<MemberValuePair> pairs = expr.getPairs();
             MemberValuePair temp = null;
             for (MemberValuePair p : pairs) {
                 if ("method".equals(p.getNameAsString())) {
                     Metadata metadata = mapping.get(p.getValue().toString());
-                    cache.add(metadata);
                     String newAnnoName = metadata.getAnnName();
+                    metaDataList.add(metadata);
                     // 更新注解名
                     expr.setName(newAnnoName);
                     temp = p;
@@ -80,38 +98,15 @@ public class ReplaceRequestMappingJob extends JavaJob {
             // 删除设置的method参数
             if (temp != null) {
                 pairs.remove(temp);
+                // 设置标志位
+                modify = true;
             }
         }
-        addImports(compilationUnit, cache);
-        String newBody = LexicalPreservingPrinter.print(compilationUnit);
-        // 暂时使用正则表达式的方式修正格式错误的问题
-        newBody = newBody.replaceAll(";import", ";\n\nimport");
-        // 以utf-8编码的方式写入文件中
-        FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
+
     }
 
-    private void addImports(CompilationUnit compilationUnit, Set<Metadata> cache) {
-        List<String> addImport = cache.stream().map(Metadata::getImportPkg).collect(Collectors.toList());
+    private void deleteImports(CompilationUnit compilationUnit) {
         NodeList<ImportDeclaration> imports = compilationUnit.getImports();
-        for (ImportDeclaration it : imports) {
-            String pkg = it.getName().asString();
-            boolean containMode = it.isAsterisk();
-            if (addImport.isEmpty()) {
-                break;
-            }
-            for (Iterator<String> iterator = addImport.iterator(); iterator.hasNext();) {
-                String string = iterator.next();
-                if (containMode) {
-                    if (string.startsWith(pkg)) {
-                        iterator.remove();
-                    }
-                } else {
-                    if (string.equals(pkg)) {
-                        iterator.remove();
-                    }
-                }
-            }
-        }
         List<String> deleteImports = Arrays.asList(
                 "org.springframework.web.bind.annotation.RequestMethod");
         imports.stream()
@@ -121,9 +116,6 @@ public class ReplaceRequestMappingJob extends JavaJob {
                 // 不可边循环边删除,所以先filter出一个集合再删除
                 .collect(Collectors.toList())
                 .forEach(it -> compilationUnit.remove(it));
-        for (String str : addImport) {
-            imports.add(new ImportDeclaration(str, false, false));
-        }
     }
 
 }
