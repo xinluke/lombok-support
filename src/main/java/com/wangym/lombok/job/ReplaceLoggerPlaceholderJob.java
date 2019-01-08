@@ -17,6 +17,7 @@ import org.springframework.util.FileCopyUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -74,6 +75,7 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
             if ("log".equals(n.getScope().get().toString())) {
                 NodeList<Expression> args = n.getArguments();
                 Expression expr = args.get(0);
+                // log.info方法的第一个参数必然为字符串，如果不是字符串，说明可以转化为字符串占位符的表现形式
                 if (expr instanceof BinaryExpr) {
                     // 设置标志位
                     modify = true;
@@ -119,28 +121,22 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
         }
 
         private List<Expression> searchExpression(Expression expression) {
-            List<Expression> list = new ArrayList<>();
-            if (expression instanceof BinaryExpr) {
-                BinaryExpr expr = (BinaryExpr) expression;
-                if (expr.getOperator() != BinaryExpr.Operator.PLUS) {
-                    // 暂时只能支持连加的数据
-                    throw new RuntimeException("unsupport operator");
-                }
-                list.addAll(searchExpression(expr.getLeft()));
-                list.addAll(searchExpression(expr.getRight()));
+            if (!(expression instanceof BinaryExpr)) {
+                return Arrays.asList(expression);
             } else {
-                // 假设这个表达式应该由这些部分构成
-                if (!(expression instanceof NameExpr) && !(expression instanceof StringLiteralExpr)
-                        && !(expression instanceof MethodCallExpr) && !(expression instanceof FieldAccessExpr)
-                        && !(expression instanceof EnclosedExpr)) {
-                    throw new RuntimeException("unsupport expression");
+                BinaryExpr expr = (BinaryExpr) expression;
+                // 判断是否是用'+'连接的字符串表达式
+                if (expr.getOperator() != BinaryExpr.Operator.PLUS) {
+                    // 如果不是连加的数据表达式，单独作为一项
+                    return Arrays.asList(expr);
+                } else {
+                    List<Expression> list = new ArrayList<>();
+                    list.addAll(searchExpression(expr.getLeft()));
+                    list.addAll(searchExpression(expr.getRight()));
+                    return list;
                 }
-                list.add(expression);
-                return list;
             }
-            return list;
         }
-
     }
 
 }
