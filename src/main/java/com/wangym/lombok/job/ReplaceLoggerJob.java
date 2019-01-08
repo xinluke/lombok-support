@@ -46,6 +46,8 @@ public class ReplaceLoggerJob extends JavaJob {
             log.info("清除原来的log声明，替换成@slf4j形式");
             LexicalPreservingPrinter.setup(compilationUnit);
             compilationUnit.accept(visitor, null);
+            String loggerName = visitor.getLoggerName();
+            compilationUnit.accept(new LoggerRenameVisitor(loggerName), null);
             addImports(compilationUnit, meta);
             deleteImports(compilationUnit);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
@@ -93,6 +95,17 @@ public class ReplaceLoggerJob extends JavaJob {
                 }
             }
             return super.visit(field, arg);
+        }
+
+    }
+
+    @Getter
+    class LoggerRenameVisitor extends ModifierVisitor<Void> {
+        private String loggerName;
+
+        public LoggerRenameVisitor(String loggerName) {
+            super();
+            this.loggerName = loggerName;
         }
 
         @Override
