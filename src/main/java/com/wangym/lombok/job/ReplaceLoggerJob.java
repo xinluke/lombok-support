@@ -45,7 +45,9 @@ public class ReplaceLoggerJob extends JavaJob {
         if (visitor.isModify()) {
             log.info("清除原来的log声明，替换成@slf4j形式");
             LexicalPreservingPrinter.setup(compilationUnit);
+            // 替换成@slf4j注解
             compilationUnit.accept(visitor, null);
+            // rename变量
             String loggerName = visitor.getLoggerName();
             compilationUnit.accept(new LoggerRenameVisitor(loggerName), null);
             addImports(compilationUnit, meta);
