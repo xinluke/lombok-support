@@ -10,6 +10,7 @@ import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
@@ -84,9 +85,56 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
                     } catch (Exception e) {
                         log.error("处理失败", e);
                     }
+                }else if(expr instanceof MethodCallExpr){
+                    doHandle1(n);
                 }
             }
             return super.visit(n, arg);
+        }
+
+        private void doHandle1(MethodCallExpr po) {
+            NodeList<Expression> args = po.getArguments();
+            Expression expr = args.get(0);
+            // 如果第一个参数是String.format("tmp=%s", "123")的表现形式
+            if (expr instanceof MethodCallExpr) {
+                if (!expr.toString().startsWith("String.format(")) {
+                    return;
+                }
+                NodeList<Expression> arglist = ((MethodCallExpr) expr).getArguments();
+                Expression node = arglist.get(0);
+                // 如果第一个参数值不为字符串的形式的话，说明是可以转化的
+                if (!(node instanceof StringLiteralExpr)) {
+                    return;
+                }
+                String string = ((StringLiteralExpr) node).getValue();
+                int key = count(string);
+                // 如果替换的参数变量不等于参数的个数，则不执行
+                if (key != arglist.size() - 1) {
+                    return;
+                }
+                modify = true;
+                args.remove(0);
+                args.add(0, new StringLiteralExpr(processMsg(string)));
+                // 从第二个参数开始添加
+                List<Expression> newArgs = new ArrayList<>();
+                for (int i = 1; i < arglist.size(); i++) {
+                    newArgs.add(arglist.get(i));
+                }
+                args.addAll(1, newArgs);
+            }
+        }
+
+        private int count(String string) {
+            List<String> keys = Arrays.asList("%s", "%d");
+            int count = 0;
+            for (String key : keys) {
+                count += StringUtils.countMatches(string, key);
+            }
+            return count;
+        }
+
+        private String processMsg(String string) {
+            return string.replaceAll("%s", "{}").replaceAll("%d", "{}");
         }
 
         private MethodCallExpr doHandle(MethodCallExpr po) {
