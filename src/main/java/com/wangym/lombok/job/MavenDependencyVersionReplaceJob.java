@@ -1,5 +1,6 @@
 package com.wangym.lombok.job;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Dependency;
@@ -43,45 +44,64 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         MavenXpp3Reader reader = new MavenXpp3Reader();
         Model model = reader.read(new FileInputStream(file));
         // Editing
-        processDependency(model);
-        // Writing
-        new MavenJDOMWriter(model)
-                .setExpandEmptyElements(false)// pom.xml需要简化配置，所以override原本的配置，设置为自闭合
-                .write(model, file);
+        ModelWrapper modelWrapper = new ModelWrapper(model);
+        modelWrapper.process();
+        if (modelWrapper.isHasModify()) {
+            // Writing
+            new MavenJDOMWriter(model)
+                    .setExpandEmptyElements(false)// pom.xml需要简化配置，所以override原本的配置，设置为自闭合
+                    .write(model, file);
+        }
     }
 
-    private void insertProperty(String artifactId, String version, Model model) {
-        String key = artifactId + ".version";
-        Properties prop = model.getProperties();
-        prop.setProperty(key, version);
-    }
+    @Getter
+    class ModelWrapper {
+        private Model model;
+        private boolean hasModify = false;
 
-    private String getNewVersion(String artifactId) {
-        String key = artifactId + ".version";
-        return "${" + key + "}";
-    }
+        public ModelWrapper(Model model) {
+            super();
+            this.model = model;
+        }
 
-    private void processDependency(Model model) {
-        List<Dependency> dep = model.getDependencies();
-        for (Dependency d : dep) {
-            String a = d.getArtifactId();
-            String v = d.getVersion();
-            if (!isVersion(v)) {
-                continue;
+        public void process() {
+            List<Dependency> dep = model.getDependencies();
+            for (Dependency d : dep) {
+                String a = d.getArtifactId();
+                String v = d.getVersion();
+                // 如果是原始的值类型的版本号才进行处理
+                if (!isVersion(v)) {
+                    continue;
+                }
+                insertProperty(a, v);
+                d.setVersion(getNewVersion(a));
+                // 说明pom.xml有变动
+                hasModify = true;
             }
-            insertProperty(a, v, model);
-            d.setVersion(getNewVersion(a));
         }
+
+        private void insertProperty(String artifactId, String version) {
+            String key = artifactId + ".version";
+            Properties prop = model.getProperties();
+            prop.setProperty(key, version);
+        }
+
+        private String getNewVersion(String artifactId) {
+            String key = artifactId + ".version";
+            return "${" + key + "}";
+        }
+
+        private boolean isVersion(String version) {
+            if (StringUtils.isEmpty(version)) {
+                return false;
+            }
+            if (version.contains("$")) {
+                return false;
+            }
+            return true;
+        }
+
     }
 
-    private boolean isVersion(String version) {
-        if (StringUtils.isEmpty(version)) {
-            return false;
-        }
-        if (version.contains("$")) {
-            return false;
-        }
-        return true;
-    }
 
 }
