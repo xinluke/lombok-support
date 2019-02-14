@@ -52,6 +52,13 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.5</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.commonjava.maven/maven3-model-jdom-support -->
+        <dependency>
+            <groupId>org.commonjava.maven</groupId>
+            <artifactId>maven3-model-jdom-support</artifactId>
+            <version>1.6</version>
+        </dependency>
+        
     </dependencies>
 
     <build>
