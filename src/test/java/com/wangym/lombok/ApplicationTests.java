@@ -4,7 +4,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.ReplaceLoggerJob;
+import com.wangym.lombok.job.impl.ReplaceLoggerJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ public class ApplicationTests {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/AppGroupController.java"));
+        job.handle(new File("c:/CrashLogESHelper.java"));
     }
 
     @Test

@@ -1,5 +1,6 @@
-package com.wangym.lombok.job;
+package com.wangym.lombok.job.impl;
 
+import com.wangym.lombok.job.AbstractJob;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

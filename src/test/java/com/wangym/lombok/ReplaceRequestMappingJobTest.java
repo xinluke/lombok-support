@@ -1,6 +1,6 @@
 package com.wangym.lombok;
 
-import com.wangym.lombok.job.ReplaceRequestMappingJob;
+import com.wangym.lombok.job.impl.ReplaceRequestMappingJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,6 +1,6 @@
 package com.wangym.lombok;
 
-import com.wangym.lombok.job.NoArgsConstructorJob;
+import com.wangym.lombok.job.impl.NoArgsConstructorJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,13 +1,16 @@
-package com.wangym.lombok.job;
+package com.wangym.lombok.job.impl;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import com.wangym.lombok.job.JavaJob;
+import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,25 +18,25 @@ import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * @author wangym
- * @version 创建时间：2018年11月6日 下午2:27:46
+ * @version 创建时间：2018年11月6日 上午10:29:24
  */
 @Component
 @Slf4j
-public class SystemOutPrintJob extends JavaJob {
+public class PrintStackTraceJob extends JavaJob {
+
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
 
     @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        SystemOutPrintVisitor visitor = new SystemOutPrintVisitor();
+        PrintStackTraceVisitor visitor = new PrintStackTraceVisitor();
         compilationUnit.clone().accept(visitor, null);
         if (visitor.isModify()) {
-            log.info("存在[System.out.println()]代码块，将进行替换");
+            log.info("存在[e.printStackTrace()]的代码块，将进行替换");
             LexicalPreservingPrinter.setup(compilationUnit);
             compilationUnit.accept(visitor, null);
             addImports(compilationUnit, meta);
@@ -44,42 +47,35 @@ public class SystemOutPrintJob extends JavaJob {
     }
 
     @Getter
-    class SystemOutPrintVisitor extends ModifierVisitor<Void> {
+    class PrintStackTraceVisitor extends ModifierVisitor<Void> {
         private boolean modify = false;
 
         @Override
-        public Visitable visit(MethodCallExpr n, Void arg) {
-            Optional<Expression> scope = n.getScope();
-            // 找出System.out.println();和System.out.print();
-            if (scope.isPresent() && "System.out".equals(scope.get().toString())
-                    && n.getNameAsString().startsWith("print")) {
+        public Visitable visit(MethodCallExpr it, Void arg) {
+            if ("printStackTrace".equals(it.getName().toString()) && it.getArguments().isEmpty()) {
+                // 设置标志位
                 modify = true;
-                ClassOrInterfaceDeclaration parent = n.findParent(ClassOrInterfaceDeclaration.class).get();
+                ClassOrInterfaceDeclaration parent = it.findParent(ClassOrInterfaceDeclaration.class).get();
                 addAnnotation(parent, meta);
-                return process(n);
+                return process(it);
             }
-            return super.visit(n, arg);
+            return super.visit(it, arg);
         }
 
-        private MethodCallExpr process(MethodCallExpr expr) {
-            NodeList<Expression> args = expr.getArguments();
-            int size = args.size();
-            if (size == 0) {
-                // System.out.println();是没有意义的，直接删除掉
-                return null;
-            }
-            if (size == 1) {
-                Expression arg = args.get(0);
-                // 如果判断参数类型不是String的话就应该包装print
-                if (!(arg instanceof StringLiteralExpr|| arg instanceof BinaryExpr)) {
-                    args.add(0, new StringLiteralExpr("print:{}"));
-                }
-            }
+        private Visitable process(MethodCallExpr expr) {
+            /*
+             * 将e.printStackTrace();
+             * 替换成log.error("unexpected exception,please check",e);
+             */
+            String var = expr.getScope().get().toString();
             String str = "log";
             expr.setScope(new NameExpr(str));
-            expr.setName("info");
+            expr.setName("error");
+            expr.getArguments().add(new StringLiteralExpr("unexpected exception,please check"));
+            expr.getArguments().add(new NameExpr(var));
             return expr;
         }
+
     }
 
 }

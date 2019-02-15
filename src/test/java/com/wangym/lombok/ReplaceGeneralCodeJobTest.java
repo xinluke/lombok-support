@@ -5,7 +5,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.ReplaceGeneralCodeJob;
+import com.wangym.lombok.job.impl.ReplaceGeneralCodeJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,7 @@ public class ReplaceGeneralCodeJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/AppResult.java"));
+        job.handle(new File("c:/Base64Coder.java"));
     }
 
     @Test

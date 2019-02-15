@@ -45,6 +45,6 @@ public abstract class JavaJob extends AbstractJob implements Ordered {
         return 0;
     }
 
-    abstract void handle(File file) throws IOException;
+    public abstract void handle(File file) throws IOException;
 
 }

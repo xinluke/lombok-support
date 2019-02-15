@@ -1,6 +1,6 @@
 package com.wangym.lombok;
 
-import com.wangym.lombok.job.PrintStackTraceJob;
+import com.wangym.lombok.job.impl.PrintStackTraceJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +23,6 @@ public class PrintStackTraceJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/Application.java"));
+        job.handle(new File("c:/DeleteMsgDataService.java"));
     }
 }

@@ -1,6 +1,6 @@
 package com.wangym.lombok;
 
-import com.wangym.lombok.job.SystemOutPrintJob;
+import com.wangym.lombok.job.impl.SystemOutPrintJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +22,6 @@ public class SystemOutPrintJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/DeleteMsgDataService.java"));
+        job.handle(new File("c:/JavaTest.java"));
     }
 }

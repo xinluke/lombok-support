@@ -1,6 +1,6 @@
 package com.wangym.lombok;
 
-import com.wangym.lombok.job.ReplaceLoggerPlaceholderJob;
+import com.wangym.lombok.job.impl.ReplaceLoggerPlaceholderJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +23,6 @@ public class ReplaceLoggerPlaceholderJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/SmsSendingBuilder.java"));
+        job.handle(new File("c:/CertificateService.java"));
     }
 }
