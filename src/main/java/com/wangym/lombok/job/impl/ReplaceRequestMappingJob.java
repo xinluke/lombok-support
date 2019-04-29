@@ -5,9 +5,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.MemberValuePair;
-import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
@@ -88,7 +86,22 @@ public class ReplaceRequestMappingJob extends JavaJob {
             MemberValuePair temp = null;
             for (MemberValuePair p : pairs) {
                 if ("method".equals(p.getNameAsString())) {
-                    Metadata metadata = mapping.get(p.getValue().toString());
+                    Expression value = p.getValue();
+                    Metadata metadata;
+                    // 判断是否是数组类型的注解值
+                    if (value instanceof ArrayInitializerExpr) {
+                        ArrayInitializerExpr val = (ArrayInitializerExpr) value;
+                        NodeList<Expression> annParamValuesList = val.getValues();
+                        // 如果是多个也无法确定是替换成哪种形式
+                        if (annParamValuesList.size() != 1) {
+                            continue;
+                        } else {
+                            // 默认取第0个
+                            metadata = mapping.get(annParamValuesList.get(0).toString());
+                        }
+                    } else {
+                        metadata = mapping.get(value.toString());
+                    }
                     String newAnnoName = metadata.getAnnName();
                     metaDataList.add(metadata);
                     // 更新注解名
