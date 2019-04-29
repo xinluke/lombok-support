@@ -75,7 +75,8 @@ public class ReplaceLoggerJob extends JavaJob {
             if (variableList.size() == 1) {
                 VariableDeclarator variable = variableList.get(0);
                 // 找出关于"Logger"的字段声明
-                if ("Logger".equals(variable.getTypeAsString())) {
+                String typeAsString = variable.getTypeAsString();
+                if (Arrays.asList("Logger", "Log").contains(typeAsString)) {
                     Optional<Expression> initializer = variable.getInitializer();
                     Expression exp = initializer.get();
                     if (exp instanceof MethodCallExpr) {
