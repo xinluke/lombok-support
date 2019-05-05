@@ -138,6 +138,8 @@ public class ReplaceLoggerJob extends JavaJob {
         List<String> deleteImports = Arrays.asList(
                 "org.slf4j.Logger",
                 "org.slf4j.LoggerFactory",
+                "org.apache.commons.logging.Log",
+                "org.apache.commons.logging.LogFactory",
                 "org.apache.log4j.Logger");
         imports.stream()
                 .filter(it -> {
