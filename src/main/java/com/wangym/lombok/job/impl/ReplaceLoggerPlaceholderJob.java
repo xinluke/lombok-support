@@ -74,6 +74,11 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
             if (!n.getScope().isPresent()) {
                 return super.visit(n, arg);
             }
+            String methodCallStr = n.toString();
+            // 如果是判断类型的方法则跳过
+            if (methodCallStr.startsWith("log.is")) {
+                return super.visit(n, arg);
+            }
             if ("log".equals(n.getScope().get().toString())) {
                 NodeList<Expression> args = n.getArguments();
                 Expression expr = args.get(0);
