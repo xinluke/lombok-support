@@ -69,7 +69,9 @@ public class ReplaceRequestMappingJob extends JavaJob {
         @Override
         public Visitable visit(MethodDeclaration method, Void arg) {
             NormalAnnotationExpr expr = getTargetAnn(method);
-            doHandle(expr);
+            if (expr != null) {
+                doHandle(expr);
+            }
             return super.visit(method, arg);
         }
 
