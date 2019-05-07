@@ -68,24 +68,29 @@ public class ReplaceRequestMappingJob extends JavaJob {
 
         @Override
         public Visitable visit(MethodDeclaration method, Void arg) {
-            NodeList<AnnotationExpr> anns = method.getAnnotations();
-            for (AnnotationExpr expr : anns) {
-                if ("RequestMapping".equals(expr.getNameAsString())) {
-                    // 只有有注解有元素的才加入带筛查列表中
-                    if (expr instanceof NormalAnnotationExpr) {
-                        doHandle((NormalAnnotationExpr) expr);
-                        return method;
-                    }
+            NormalAnnotationExpr expr = getTargetAnn(method);
+            doHandle(expr);
+            return super.visit(method, arg);
+        }
+
+        private NormalAnnotationExpr getTargetAnn(MethodDeclaration it) {
+            List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+                    "DeleteMapping", "PatchMapping");
+            NodeList<AnnotationExpr> anns = it.getAnnotations();
+            for (AnnotationExpr item : anns) {
+                if (annNames.contains(item.getNameAsString())) {
+                    return (NormalAnnotationExpr) item;
                 }
             }
-            return super.visit(method, arg);
+            return null;
         }
 
         private void doHandle(NormalAnnotationExpr expr) {
             NodeList<MemberValuePair> pairs = expr.getPairs();
             MemberValuePair temp = null;
             for (MemberValuePair p : pairs) {
-                if ("method".equals(p.getNameAsString())) {
+                String nameAsString = p.getNameAsString();
+                if ("method".equals(nameAsString)) {
                     Expression value = p.getValue();
                     Metadata metadata;
                     // 判断是否是数组类型的注解值
@@ -107,7 +112,22 @@ public class ReplaceRequestMappingJob extends JavaJob {
                     // 更新注解名
                     expr.setName(newAnnoName);
                     temp = p;
-                    continue;
+                } else if ("path".equals(nameAsString)) {
+                    // 使用path的参数全部切换成value的方式，统一
+                    p.setName(new SimpleName("value"));
+                    modify = true;
+                } else if ("value".equals(nameAsString)) {
+                    Expression value = p.getValue();
+                    // 判断是否是数组类型的注解值
+                    if (value instanceof ArrayInitializerExpr) {
+                        ArrayInitializerExpr val = (ArrayInitializerExpr) value;
+                        NodeList<Expression> annParamValuesList = val.getValues();
+                        // 如果是只有一个参数就用简单写法，简约&规范
+                        if (annParamValuesList.size() == 1) {
+                            p.setValue(annParamValuesList.get(0));
+                            modify = true;
+                        }
+                    }
                 }
             }
             // 删除设置的method参数
