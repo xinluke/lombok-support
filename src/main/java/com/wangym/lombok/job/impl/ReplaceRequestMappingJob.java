@@ -4,6 +4,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
@@ -13,6 +14,7 @@ import com.wangym.lombok.job.JavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ReplaceRequestMappingJob extends JavaJob {
 
+    @Value("${mergeRequestUrl:false}")
+    private boolean mergeRequestUrl;
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {
         mapping.put("RequestMethod.GET",
@@ -47,7 +51,7 @@ public class ReplaceRequestMappingJob extends JavaJob {
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor();
+        RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor(mergeRequestUrl);
         compilationUnit.clone().accept(visitor, null);
         if (visitor.isModify()) {
             log.info("存在[@RequestMapping旧版的写法]代码块，将进行替换");
@@ -65,6 +69,14 @@ public class ReplaceRequestMappingJob extends JavaJob {
     class RequestMappingConstructorVisitor extends ModifierVisitor<Void> {
         private boolean modify = false;
         private Set<Metadata> metaDataList = new HashSet<>();
+        private boolean enableMergeRequestUrl;
+        // 父级路径
+        private String path;
+
+        public RequestMappingConstructorVisitor(boolean enableMergeRequestUrl) {
+            super();
+            this.enableMergeRequestUrl = enableMergeRequestUrl;
+        }
 
         @Override
         public Visitable visit(MethodDeclaration method, Void arg) {
@@ -75,7 +87,50 @@ public class ReplaceRequestMappingJob extends JavaJob {
             return super.visit(method, arg);
         }
 
+        @Override
+        public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
+            NormalAnnotationExpr expr = getTargetAnn(n);
+            if (expr != null) {
+                NodeList<MemberValuePair> pairs = expr.getPairs();
+                for (MemberValuePair p : pairs) {
+                    String nameAsString = p.getNameAsString();
+                    if ("value".equals(nameAsString)) {
+                        // record
+                        StringLiteralExpr v = (StringLiteralExpr) p.getValue();
+                        recordPath(v.getValue());
+                    }
+                }
+                if (hasPath()) {
+                    n.remove(expr);
+                }
+            }
+            return super.visit(n, arg);
+        }
+
+        void recordPath(String newPath) {
+            // 只更新一次
+            if (path == null && enableMergeRequestUrl) {
+                path = newPath;
+            }
+        }
+
+        boolean hasPath() {
+            return path != null;
+        }
+
         private NormalAnnotationExpr getTargetAnn(MethodDeclaration it) {
+            List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+                    "DeleteMapping", "PatchMapping");
+            NodeList<AnnotationExpr> anns = it.getAnnotations();
+            for (AnnotationExpr item : anns) {
+                if (annNames.contains(item.getNameAsString())) {
+                    return (NormalAnnotationExpr) item;
+                }
+            }
+            return null;
+        }
+
+        private NormalAnnotationExpr getTargetAnn(ClassOrInterfaceDeclaration it) {
             List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
                     "DeleteMapping", "PatchMapping");
             NodeList<AnnotationExpr> anns = it.getAnnotations();
@@ -127,6 +182,12 @@ public class ReplaceRequestMappingJob extends JavaJob {
                         // 如果是只有一个参数就用简单写法，简约&规范
                         if (annParamValuesList.size() == 1) {
                             p.setValue(annParamValuesList.get(0));
+                            modify = true;
+                        }
+                    } else if (value instanceof StringLiteralExpr) {
+                        if (hasPath()) {
+                            StringLiteralExpr v = (StringLiteralExpr) value;
+                            p.setValue(new StringLiteralExpr(path + v.getValue()));
                             modify = true;
                         }
                     }
