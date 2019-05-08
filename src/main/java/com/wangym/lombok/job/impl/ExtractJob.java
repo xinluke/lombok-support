@@ -2,8 +2,10 @@ package com.wangym.lombok.job.impl;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
@@ -16,6 +18,7 @@ import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.EnumSet;
 
 @Component
 @ConditionalOnProperty(value = "extract.enable", havingValue = "true")
@@ -28,6 +31,7 @@ public class ExtractJob extends JavaJob {
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
         ExtractVisitor visitor = new ExtractVisitor();
         LexicalPreservingPrinter.setup(compilationUnit);
+        log.info("class文件抽取成接口,{}", file);
         compilationUnit.accept(visitor, null);
         String newBody = LexicalPreservingPrinter.print(compilationUnit);
         // 以utf-8编码的方式写入文件中
@@ -55,6 +59,16 @@ public class ExtractJob extends JavaJob {
         public Visitable visit(FieldDeclaration n, Void arg) {
             // 不要字段声明
             return null;
+        }
+
+        @Override
+        public Visitable visit(MethodDeclaration n, Void arg) {
+            EnumSet<Modifier> set = n.getModifiers();
+            // 不要私有方法
+            if (set.contains(Modifier.PRIVATE)) {
+                return null;
+            }
+            return super.visit(n, arg);
         }
 
     }
