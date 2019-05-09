@@ -10,6 +10,7 @@ import org.apache.maven.model.io.jdom.MavenJDOMWriter;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.jdom2.JDOMException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -23,6 +24,7 @@ import java.util.Properties;
  * @author wangym
  * @version 创建时间：2018年6月25日 下午1:40:20
  */
+@ConditionalOnProperty(value = "maven.trim.enable", havingValue = "true")
 @Component
 @Slf4j
 public class MavenDependencyVersionReplaceJob extends AbstractJob {
