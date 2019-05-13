@@ -64,10 +64,13 @@ public class ExtractJob extends JavaJob {
         @Override
         public Visitable visit(MethodDeclaration n, Void arg) {
             EnumSet<Modifier> set = n.getModifiers();
-            // 不要私有方法
-            if (set.contains(Modifier.PRIVATE)) {
+            // 非公有方法的去除掉
+            if (!set.contains(Modifier.PUBLIC)) {
                 return null;
             }
+            // 公有方法的修饰符去除，本身在接口中的方法就是public的
+            set.remove(Modifier.PUBLIC);
+            n.setModifiers(set);
             return super.visit(n, arg);
         }
 
