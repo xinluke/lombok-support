@@ -67,6 +67,8 @@ public class ReplaceRequestMappingJob extends JavaJob {
 
     @Getter
     class RequestMappingConstructorVisitor extends ModifierVisitor<Void> {
+        private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+                "DeleteMapping", "PatchMapping");
         private boolean modify = false;
         private Set<Metadata> metaDataList = new HashSet<>();
         private boolean enableMergeRequestUrl;
@@ -119,8 +121,6 @@ public class ReplaceRequestMappingJob extends JavaJob {
         }
 
         private NormalAnnotationExpr getTargetAnn(MethodDeclaration it) {
-            List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
-                    "DeleteMapping", "PatchMapping");
             NodeList<AnnotationExpr> anns = it.getAnnotations();
             for (AnnotationExpr item : anns) {
                 if (annNames.contains(item.getNameAsString())) {
@@ -131,12 +131,12 @@ public class ReplaceRequestMappingJob extends JavaJob {
         }
 
         private NormalAnnotationExpr getTargetAnn(ClassOrInterfaceDeclaration it) {
-            List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
-                    "DeleteMapping", "PatchMapping");
             NodeList<AnnotationExpr> anns = it.getAnnotations();
             for (AnnotationExpr item : anns) {
                 if (annNames.contains(item.getNameAsString())) {
-                    return (NormalAnnotationExpr) item;
+                    if (item instanceof NormalAnnotationExpr) {
+                        return (NormalAnnotationExpr) item;
+                    }
                 }
             }
             return null;
