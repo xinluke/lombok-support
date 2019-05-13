@@ -69,8 +69,9 @@ public class ExtractJob extends JavaJob {
                 return null;
             }
             // 公有方法的修饰符去除，本身在接口中的方法就是public的
-            set.remove(Modifier.PUBLIC);
-            n.setModifiers(set);
+            EnumSet<Modifier> newset = EnumSet.copyOf(set);
+            newset.remove(Modifier.PUBLIC);
+            n.setModifiers(newset);
             return super.visit(n, arg);
         }
 
