@@ -17,6 +17,7 @@ import com.wangym.lombok.job.JavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
@@ -36,12 +37,14 @@ import java.util.stream.Collectors;
 public class ReplaceLoggerJob extends JavaJob {
 
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
+    @Value("${loggerSearchAll:false}")
+    private boolean fullSearch;
 
     @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        LoggerVisitor visitor = new LoggerVisitor();
+        LoggerVisitor visitor = new LoggerVisitor(fullSearch);
         // 预检查
         compilationUnit.clone().findAll(FieldDeclaration.class).forEach(it -> visitor.visit(it, null));
         if (visitor.isModify()) {
@@ -64,43 +67,55 @@ public class ReplaceLoggerJob extends JavaJob {
     class LoggerVisitor extends ModifierVisitor<Void> {
         private boolean modify = false;
         private String loggerName;
+        // 可能匹配Log变量的类型名称
+        private List<String> asList = Arrays.asList("Logger", "Log");
+        private boolean fullSearch;
+
+        public LoggerVisitor(boolean fullSearch) {
+            super();
+            // 是否是全部类型的Log变量都进行查找，不管是否是private
+            this.fullSearch = fullSearch;
+        }
 
         @Override
         public Visitable visit(FieldDeclaration field, Void arg) {
-            if (!field.isPrivate()) {
+            if (!fullSearch && !field.isPrivate()) {
+                // 不做任何变动，不处理
                 return super.visit(field, arg);
             }
             List<VariableDeclarator> variableList = field.findAll(VariableDeclarator.class);
             // 假设Logger的声明都是一个变量一个声明，不存在int x=3,y=4;这样的形式
-            if (variableList.size() == 1) {
-                VariableDeclarator variable = variableList.get(0);
-                // 找出关于"Logger"的字段声明
-                String typeAsString = variable.getTypeAsString();
-                if (Arrays.asList("Logger", "Log").contains(typeAsString)) {
-                    Optional<Expression> initializer = variable.getInitializer();
-                    Expression exp = initializer.get();
-                    if (exp instanceof MethodCallExpr) {
-                        String text = ((MethodCallExpr) exp).getArgument(0).toString();
-                        ClassOrInterfaceDeclaration parent = field.findParent(ClassOrInterfaceDeclaration.class).get();
-                        String className = parent.getNameAsString();
-                        List<String> targetList = Arrays.asList(className, "getClass");
-                        for (String target : targetList) {
-                            boolean check = text.contains(target);
-                            if (check) {
-                                // 设置标志位
-                                modify = true;
-                                // 保存loggerName
-                                loggerName = variable.getNameAsString();
-                                addAnnotation(parent, meta);
-                                // 删除掉代码写的Logger声明，换成注解形式
-                                return null;
-                            }
+            if (variableList.size() != 1) {
+                return super.visit(field, arg);
+            }
+            VariableDeclarator variable = variableList.get(0);
+            // 找出关于"Logger"的字段声明
+            String typeAsString = variable.getTypeAsString();
+            if (asList.contains(typeAsString)) {
+                Optional<Expression> initializer = variable.getInitializer();
+                Expression exp = initializer.get();
+                if (exp instanceof MethodCallExpr) {
+                    String text = ((MethodCallExpr) exp).getArgument(0).toString();
+                    ClassOrInterfaceDeclaration parent = field.findParent(ClassOrInterfaceDeclaration.class).get();
+                    String className = parent.getNameAsString();
+                    List<String> targetList = Arrays.asList(className, "getClass");
+                    for (String target : targetList) {
+                        boolean check = text.contains(target);
+                        if (check) {
+                            // 设置标志位
+                            modify = true;
+                            // 保存loggerName
+                            loggerName = variable.getNameAsString();
+                            addAnnotation(parent, meta);
+                            // 删除掉代码写的Logger声明，换成注解形式
+                            return null;
                         }
                     }
                 }
             }
             return super.visit(field, arg);
         }
+
 
     }
 
