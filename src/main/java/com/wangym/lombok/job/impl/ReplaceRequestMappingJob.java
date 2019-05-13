@@ -124,7 +124,9 @@ public class ReplaceRequestMappingJob extends JavaJob {
             NodeList<AnnotationExpr> anns = it.getAnnotations();
             for (AnnotationExpr item : anns) {
                 if (annNames.contains(item.getNameAsString())) {
-                    return (NormalAnnotationExpr) item;
+                    if (item instanceof NormalAnnotationExpr) {
+                        return (NormalAnnotationExpr) item;
+                    }
                 }
             }
             return null;
