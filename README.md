@@ -1,4 +1,6 @@
 # lombok-support
+[![Build Status](https://travis-ci.org/xinluke/lombok-support.svg?branch=master)](https://travis-ci.org/xinluke/lombok-support)
+
 删除冗余代码，替换成注解
 
 对于老项目，想全面拥抱lombok并不容易，需要把老代码翻出来自己替换一遍，费时费力。
