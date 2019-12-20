@@ -40,6 +40,7 @@ public class StatJob extends JavaJob {
 
     @PreDestroy
     public void print() {
+        log.info("print stat info");
         Iterator<String> iterator = hashMap.keySet().iterator();
         while (iterator.hasNext()) {
             String word = iterator.next();
