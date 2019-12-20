@@ -45,8 +45,7 @@ public class StatJob extends JavaJob {
         while (iterator.hasNext()) {
             String word = iterator.next();
 
-//          System.out.printf("单词： "+word+"出现次数："+hashMap.get(word));
-            System.out.printf("单词:%-12s 出现次数:%d\n", word, hashMap.get(word));
+            log.info("单词:{} 出现次数:{}", word, hashMap.get(word));
         }
     }
 
