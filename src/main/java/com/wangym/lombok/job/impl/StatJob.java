@@ -25,7 +25,7 @@ import java.util.HashMap;
  * @author wangym
  * @version 创建时间：2018年11月6日 下午2:27:46
  */
-@ConditionalOnProperty(value = "stat.enable", havingValue = "false")
+@ConditionalOnProperty(value = "stat.enable", havingValue = "true")
 @Component
 @Slf4j
 public class StatJob extends JavaJob {
