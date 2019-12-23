@@ -10,8 +10,8 @@ public class WordDict {
     private List<WordEntity> list = new ArrayList<>();
 
     public void add(String name) {
-        int index = list.indexOf(name);
-        if (index > 0) {
+        int index = list.indexOf(new WordEntity(name));
+        if (index >= 0) {
             list.get(index).incr();
         } else {
             list.add(new WordEntity(name));

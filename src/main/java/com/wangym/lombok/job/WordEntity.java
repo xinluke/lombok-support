@@ -7,7 +7,7 @@ public class WordEntity {
 
     private String name;
     private int count;
-    
+
     public void incr() {
         count++;
     }
@@ -34,9 +34,6 @@ public class WordEntity {
         if (obj == null) {
             return false;
         }
-        if(obj instanceof String) {
-            return name.equals(obj);
-        }
         if (getClass() != obj.getClass()) {
             return false;
         }
@@ -55,6 +52,4 @@ public class WordEntity {
     public String toString() {
         return name + ", count=" + count + "]";
     }
-    
-    
 }

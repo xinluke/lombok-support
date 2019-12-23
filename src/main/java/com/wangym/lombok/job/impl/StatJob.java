@@ -10,6 +10,7 @@ import com.wangym.lombok.job.JavaJob;
 import com.wangym.lombok.job.WordDict;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
@@ -24,6 +25,7 @@ import java.util.HashMap;
  * @author wangym
  * @version 创建时间：2018年11月6日 下午2:27:46
  */
+@ConditionalOnProperty(value = "stat.enable", havingValue = "false")
 @Component
 @Slf4j
 public class StatJob extends JavaJob {
