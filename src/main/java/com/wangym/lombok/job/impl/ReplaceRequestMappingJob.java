@@ -202,6 +202,9 @@ public class ReplaceRequestMappingJob extends JavaJob {
                 }
             }
             if(onlySupportJson && !producesExist) {
+                // 有些开发者希望api返回的格式是固定的，所以直接在注解声明只支持json格式的数据响应
+                // 避免有些开发者不清楚自己使用了Http的Accept协商头，而我们的api假如是多种返回格式的话，可能会返回xml或者其他格式的数据，而重点在于开发者不太了解http的协商机制，从而认为是我们的问题。
+                // 现阶段使用json格式的数据应该是满足绝大部分的用户的需求
                 FieldAccessExpr value = new FieldAccessExpr(new NameExpr("MediaType"), "APPLICATION_JSON_VALUE");
                 pairs.add(new MemberValuePair("produces", value));
                 modify = true;
