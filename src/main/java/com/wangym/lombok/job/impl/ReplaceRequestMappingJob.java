@@ -33,6 +33,8 @@ public class ReplaceRequestMappingJob extends JavaJob {
 
     @Value("${mergeRequestUrl:false}")
     private boolean mergeRequestUrl;
+    @Value("${onlySupportJson:false}")
+    private boolean onlySupportJson;
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {
         mapping.put("RequestMethod.GET",
@@ -147,6 +149,7 @@ public class ReplaceRequestMappingJob extends JavaJob {
         private void doHandle(NormalAnnotationExpr expr) {
             NodeList<MemberValuePair> pairs = expr.getPairs();
             MemberValuePair temp = null;
+            boolean producesExist = false;
             for (MemberValuePair p : pairs) {
                 String nameAsString = p.getNameAsString();
                 if ("method".equals(nameAsString)) {
@@ -193,7 +196,15 @@ public class ReplaceRequestMappingJob extends JavaJob {
                             modify = true;
                         }
                     }
+                } else if ("produces".equals(nameAsString)) {
+                    // 如果当前写法已经指明了produces，建议不再变动它
+                    producesExist = true;
                 }
+            }
+            if(onlySupportJson && !producesExist) {
+                FieldAccessExpr value = new FieldAccessExpr(new NameExpr("MediaType"), "APPLICATION_JSON_VALUE");
+                pairs.add(new MemberValuePair("produces", value));
+                modify = true;
             }
             // 删除设置的method参数
             if (temp != null) {
