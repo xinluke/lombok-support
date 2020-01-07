@@ -32,14 +32,14 @@ public class PrintStackTraceJob extends JavaJob {
     @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        PrintStackTraceVisitor visitor = new PrintStackTraceVisitor();
-        compilationUnit.clone().accept(visitor, null);
-        if (visitor.isModify()) {
-            log.info("存在[e.printStackTrace()]的代码块，将进行替换");
-            LexicalPreservingPrinter.setup(compilationUnit);
-            compilationUnit.accept(visitor, null);
-            addImports(compilationUnit, meta);
+        String code = new String(bytes, "utf-8");
+        CompilationUnit compilationUnit = JavaParser.parse(code);
+        int before = compilationUnit.hashCode();
+        LexicalPreservingPrinter.setup(compilationUnit);
+        PrintStackTraceVisitor visitor = new PrintStackTraceVisitor(compilationUnit);
+        compilationUnit.accept(visitor, null);
+        // 如果存在变更，则操作
+        if (before != compilationUnit.hashCode()) {
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
             // 以utf-8编码的方式写入文件中
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
@@ -48,15 +48,20 @@ public class PrintStackTraceJob extends JavaJob {
 
     @Getter
     class PrintStackTraceVisitor extends ModifierVisitor<Void> {
-        private boolean modify = false;
+        private CompilationUnit compilationUnit;
 
+        public PrintStackTraceVisitor(CompilationUnit compilationUnit) {
+            super();
+            this.compilationUnit = compilationUnit;
+        }
+        
         @Override
         public Visitable visit(MethodCallExpr it, Void arg) {
             if ("printStackTrace".equals(it.getName().toString()) && it.getArguments().isEmpty()) {
-                // 设置标志位
-                modify = true;
+                log.info("存在[e.printStackTrace()]的代码块，将进行替换");
                 ClassOrInterfaceDeclaration parent = it.findParent(ClassOrInterfaceDeclaration.class).get();
                 addAnnotation(parent, meta);
+                addImports(compilationUnit, meta);
                 return process(it);
             }
             return super.visit(it, arg);
@@ -64,8 +69,7 @@ public class PrintStackTraceJob extends JavaJob {
 
         private Visitable process(MethodCallExpr expr) {
             /*
-             * 将e.printStackTrace();
-             * 替换成log.error("unexpected exception,please check",e);
+             * 将e.printStackTrace(); 替换成log.error("unexpected exception,please check",e);
              */
             String var = expr.getScope().get().toString();
             String str = "log";
