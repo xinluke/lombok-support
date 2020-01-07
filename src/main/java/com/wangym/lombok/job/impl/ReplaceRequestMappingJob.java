@@ -7,7 +7,6 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
-import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import com.wangym.lombok.job.JavaJob;
@@ -59,6 +58,7 @@ public class ReplaceRequestMappingJob extends JavaJob {
         LexicalPreservingPrinter.setup(compilationUnit);
         RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor(compilationUnit);
         compilationUnit.accept(visitor, null);
+        compilationUnit.accept(new RequiresPermissionsVisitor(), null);
         // 如果存在变更，则操作
         if (before != compilationUnit.hashCode()) {
             log.info("存在[@RequestMapping旧版的写法]代码块，将进行替换");
@@ -69,7 +69,37 @@ public class ReplaceRequestMappingJob extends JavaJob {
         }
     }
 
-    class RequestMappingConstructorVisitor extends ModifierVisitor<Void> {
+    class RequiresPermissionsVisitor extends AbstractRequestMappingVisitor {
+        private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+                "DeleteMapping", "PatchMapping");
+        private NormalAnnotationExpr expr;
+
+        @Override
+        public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
+            // 查看类上面是否有此注解
+            expr = getTargetAnn(n, Arrays.asList("RequiresPermissions"));
+            if (expr != null) {
+                n.remove(expr);
+            }
+            return super.visit(n, arg);
+        }
+
+        @Override
+        public Visitable visit(MethodDeclaration method, Void arg) {
+            // 确定是否是RequestMappingEndpoint
+            if (getTargetAnn(method, annNames) == null) {
+                return super.visit(method, arg);
+            }
+            // 如果方法上面没有自定义的注解，则准备继承来自父类的接口
+            NormalAnnotationExpr methodExpr = getTargetAnn(method, Arrays.asList("RequiresPermissions"));
+            if (methodExpr == null && expr != null) {
+                method.getAnnotations().add(expr);
+            }
+            return super.visit(method, arg);
+        }
+    }
+
+    class RequestMappingConstructorVisitor extends AbstractRequestMappingVisitor {
         private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
                 "DeleteMapping", "PatchMapping");
         // 父级路径
@@ -83,7 +113,7 @@ public class ReplaceRequestMappingJob extends JavaJob {
 
         @Override
         public Visitable visit(MethodDeclaration method, Void arg) {
-            NormalAnnotationExpr expr = getTargetAnn(method);
+            NormalAnnotationExpr expr = getTargetAnn(method, annNames);
             if (expr != null) {
                 doHandle(expr);
             }
@@ -92,7 +122,7 @@ public class ReplaceRequestMappingJob extends JavaJob {
 
         @Override
         public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
-            NormalAnnotationExpr expr = getTargetAnn(n);
+            NormalAnnotationExpr expr = getTargetAnn(n, annNames);
             if (expr != null) {
                 NodeList<MemberValuePair> pairs = expr.getPairs();
                 for (MemberValuePair p : pairs) {
@@ -119,30 +149,6 @@ public class ReplaceRequestMappingJob extends JavaJob {
 
         boolean hasPath() {
             return path != null;
-        }
-
-        private NormalAnnotationExpr getTargetAnn(MethodDeclaration it) {
-            NodeList<AnnotationExpr> anns = it.getAnnotations();
-            for (AnnotationExpr item : anns) {
-                if (annNames.contains(item.getNameAsString())) {
-                    if (item instanceof NormalAnnotationExpr) {
-                        return (NormalAnnotationExpr) item;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private NormalAnnotationExpr getTargetAnn(ClassOrInterfaceDeclaration it) {
-            NodeList<AnnotationExpr> anns = it.getAnnotations();
-            for (AnnotationExpr item : anns) {
-                if (annNames.contains(item.getNameAsString())) {
-                    if (item instanceof NormalAnnotationExpr) {
-                        return (NormalAnnotationExpr) item;
-                    }
-                }
-            }
-            return null;
         }
 
         private void doHandle(NormalAnnotationExpr expr) {
