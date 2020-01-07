@@ -12,7 +12,6 @@ import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import com.wangym.lombok.job.JavaJob;
 import com.wangym.lombok.job.Metadata;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,7 +19,10 @@ import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -32,7 +34,7 @@ import java.util.stream.Collectors;
 public class ReplaceRequestMappingJob extends JavaJob {
 
     @Value("${mergeRequestUrl:false}")
-    private boolean mergeRequestUrl;
+    private boolean enableMergeRequestUrl;
     @Value("${onlySupportJson:false}")
     private boolean onlySupportJson;
     private static Map<String, Metadata> mapping = new HashMap<>();
@@ -53,13 +55,13 @@ public class ReplaceRequestMappingJob extends JavaJob {
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor(mergeRequestUrl);
-        compilationUnit.clone().accept(visitor, null);
-        if (visitor.isModify()) {
+        int before = compilationUnit.hashCode();
+        LexicalPreservingPrinter.setup(compilationUnit);
+        RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor(compilationUnit);
+        compilationUnit.accept(visitor, null);
+        // 如果存在变更，则操作
+        if (before != compilationUnit.hashCode()) {
             log.info("存在[@RequestMapping旧版的写法]代码块，将进行替换");
-            LexicalPreservingPrinter.setup(compilationUnit);
-            compilationUnit.accept(visitor, null);
-            visitor.getMetaDataList().forEach(meta -> addImports(compilationUnit, meta));
             deleteImports(compilationUnit);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
             // 以utf-8编码的方式写入文件中
@@ -67,19 +69,16 @@ public class ReplaceRequestMappingJob extends JavaJob {
         }
     }
 
-    @Getter
     class RequestMappingConstructorVisitor extends ModifierVisitor<Void> {
         private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
                 "DeleteMapping", "PatchMapping");
-        private boolean modify = false;
-        private Set<Metadata> metaDataList = new HashSet<>();
-        private boolean enableMergeRequestUrl;
         // 父级路径
         private String path;
+        private CompilationUnit compilationUnit;
 
-        public RequestMappingConstructorVisitor(boolean enableMergeRequestUrl) {
+        public RequestMappingConstructorVisitor(CompilationUnit compilationUnit) {
             super();
-            this.enableMergeRequestUrl = enableMergeRequestUrl;
+            this.compilationUnit = compilationUnit;
         }
 
         @Override
@@ -169,15 +168,14 @@ public class ReplaceRequestMappingJob extends JavaJob {
                     } else {
                         metadata = mapping.get(value.toString());
                     }
+                    addImports(compilationUnit, metadata);
                     String newAnnoName = metadata.getAnnName();
-                    metaDataList.add(metadata);
                     // 更新注解名
                     expr.setName(newAnnoName);
                     temp = p;
                 } else if ("path".equals(nameAsString)) {
                     // 使用path的参数全部切换成value的方式，统一
                     p.setName(new SimpleName("value"));
-                    modify = true;
                 } else if ("value".equals(nameAsString)) {
                     Expression value = p.getValue();
                     // 判断是否是数组类型的注解值
@@ -187,13 +185,11 @@ public class ReplaceRequestMappingJob extends JavaJob {
                         // 如果是只有一个参数就用简单写法，简约&规范
                         if (annParamValuesList.size() == 1) {
                             p.setValue(annParamValuesList.get(0));
-                            modify = true;
                         }
                     } else if (value instanceof StringLiteralExpr) {
                         if (hasPath()) {
                             StringLiteralExpr v = (StringLiteralExpr) value;
                             p.setValue(new StringLiteralExpr(path + v.getValue()));
-                            modify = true;
                         }
                     }
                 } else if ("produces".equals(nameAsString)) {
@@ -207,13 +203,10 @@ public class ReplaceRequestMappingJob extends JavaJob {
                 // 现阶段使用json格式的数据应该是满足绝大部分的用户的需求
                 FieldAccessExpr value = new FieldAccessExpr(new NameExpr("MediaType"), "APPLICATION_JSON_VALUE");
                 pairs.add(new MemberValuePair("produces", value));
-                modify = true;
             }
             // 删除设置的method参数
             if (temp != null) {
                 pairs.remove(temp);
-                // 设置标志位
-                modify = true;
             }
         }
 
