@@ -24,11 +24,18 @@ public class SystemOutPrintJob extends AbstractJavaJob {
 
     @Override
     public void process(CompilationUnit compilationUnit) {
-        SystemOutPrintVisitor visitor = new SystemOutPrintVisitor();
+        SystemOutPrintVisitor visitor = new SystemOutPrintVisitor(compilationUnit);
         compilationUnit.accept(visitor, null);
     }
 
     class SystemOutPrintVisitor extends ModifierVisitor<Void> {
+
+        private CompilationUnit compilationUnit;
+        
+        public SystemOutPrintVisitor(CompilationUnit compilationUnit) {
+            super();
+            this.compilationUnit = compilationUnit;
+        }
 
         @Override
         public Visitable visit(MethodCallExpr n, Void arg) {
@@ -39,6 +46,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
                 log.info("存在[System.out.println()]代码块，将进行替换");
                 ClassOrInterfaceDeclaration parent = n.findParent(ClassOrInterfaceDeclaration.class).get();
                 addAnnotation(parent, meta);
+                addImports(compilationUnit, meta);
                 return process(n);
             }
             return super.visit(n, arg);
