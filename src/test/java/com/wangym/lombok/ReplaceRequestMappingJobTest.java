@@ -23,6 +23,6 @@ public class ReplaceRequestMappingJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/SmsSignController.java"));
+        job.handle(new File("c:/AccountAccessDomainV2Controller.java"));
     }
 }
