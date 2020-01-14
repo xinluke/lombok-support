@@ -1,6 +1,5 @@
 package com.wangym.lombok.job.impl;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
@@ -8,16 +7,11 @@ import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.JavaJob;
+import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * @author wangym
@@ -25,25 +19,14 @@ import java.io.IOException;
  */
 @Component
 @Slf4j
-public class PrintStackTraceJob extends JavaJob {
+public class PrintStackTraceJob extends AbstractJavaJob {
 
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
 
     @Override
-    public void handle(File file) throws IOException {
-        byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        String code = new String(bytes, "utf-8");
-        CompilationUnit compilationUnit = JavaParser.parse(code);
-        int before = compilationUnit.hashCode();
-        LexicalPreservingPrinter.setup(compilationUnit);
+    public void process(CompilationUnit compilationUnit) {
         PrintStackTraceVisitor visitor = new PrintStackTraceVisitor(compilationUnit);
         compilationUnit.accept(visitor, null);
-        // 如果存在变更，则操作
-        if (before != compilationUnit.hashCode()) {
-            String newBody = LexicalPreservingPrinter.print(compilationUnit);
-            // 以utf-8编码的方式写入文件中
-            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
-        }
     }
 
     @Getter

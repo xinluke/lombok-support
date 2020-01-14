@@ -1,6 +1,5 @@
 package com.wangym.lombok.job.impl;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
@@ -8,16 +7,12 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.Visitable;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.JavaJob;
+import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -30,7 +25,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class ReplaceRequestMappingJob extends JavaJob {
+public class ReplaceRequestMappingJob extends AbstractJavaJob {
 
     @Value("${mergeRequestUrl:false}")
     private boolean enableMergeRequestUrl;
@@ -51,21 +46,14 @@ public class ReplaceRequestMappingJob extends JavaJob {
     }
 
     @Override
-    public void handle(File file) throws IOException {
-        byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
+    public void process(CompilationUnit compilationUnit) {
         int before = compilationUnit.hashCode();
-        LexicalPreservingPrinter.setup(compilationUnit);
         RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor(compilationUnit);
         compilationUnit.accept(visitor, null);
         compilationUnit.accept(new RequiresPermissionsVisitor(), null);
         // 如果存在变更，则操作
         if (before != compilationUnit.hashCode()) {
-            log.info("存在[@RequestMapping旧版的写法]代码块，将进行替换");
             deleteImports(compilationUnit);
-            String newBody = LexicalPreservingPrinter.print(compilationUnit);
-            // 以utf-8编码的方式写入文件中
-            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
     }
 

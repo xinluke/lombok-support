@@ -1,23 +1,17 @@
 package com.wangym.lombok.job.impl;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.JavaJob;
-import lombok.Getter;
+import com.wangym.lombok.job.AbstractJavaJob;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,12 +22,10 @@ import java.util.List;
  */
 @Component
 @Slf4j
-public class ReplaceLoggerPlaceholderJob extends JavaJob {
+public class ReplaceLoggerPlaceholderJob extends AbstractJavaJob {
 
     @Override
-    public void handle(File file) throws IOException {
-        byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
+    public void process(CompilationUnit compilationUnit) {
         boolean hasAnn = compilationUnit.findAll(ClassOrInterfaceDeclaration.class).stream().filter(this::isTarget)
                 .count() > 0;
         if (!hasAnn) {
@@ -41,13 +33,6 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
         }
         LoggerPlaceholderVisitor visitor = new LoggerPlaceholderVisitor();
         compilationUnit.clone().accept(visitor, null);
-        if (visitor.isModify()) {
-            LexicalPreservingPrinter.setup(compilationUnit);
-            compilationUnit.accept(visitor, null);
-            String newBody = LexicalPreservingPrinter.print(compilationUnit);
-            // 以utf-8编码的方式写入文件中
-            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
-        }
     }
 
     private boolean isTarget(ClassOrInterfaceDeclaration c) {
@@ -65,9 +50,7 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
         return Ordered.LOWEST_PRECEDENCE;
     }
 
-    @Getter
     class LoggerPlaceholderVisitor extends ModifierVisitor<Void> {
-        private boolean modify = false;
 
         @Override
         public Visitable visit(MethodCallExpr n, Void arg) {
@@ -84,8 +67,6 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
                 Expression expr = args.get(0);
                 // log.info方法的第一个参数必然为字符串，如果不是字符串，说明可以转化为字符串占位符的表现形式
                 if (expr instanceof BinaryExpr) {
-                    // 设置标志位
-                    modify = true;
                     try {
                         return doHandle(n);
                     } catch (Exception e) {
@@ -118,7 +99,6 @@ public class ReplaceLoggerPlaceholderJob extends JavaJob {
                 if (key != arglist.size() - 1) {
                     return;
                 }
-                modify = true;
                 args.remove(0);
                 args.add(0, new StringLiteralExpr(processMsg(string)));
                 // 从第二个参数开始添加
