@@ -1,23 +1,17 @@
 package com.wangym.lombok.job.impl;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.JavaJob;
+import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * @author wangym
@@ -25,29 +19,23 @@ import java.io.IOException;
  */
 @Component
 @Slf4j
-public class NoArgsConstructorJob extends JavaJob {
+public class NoArgsConstructorJob extends AbstractJavaJob {
 
     private Metadata meta = new Metadata("NoArgsConstructor", "lombok.NoArgsConstructor");
 
     @Override
-    public void handle(File file) throws IOException {
-        byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
+    public void process(CompilationUnit compilationUnit) {
+        int before = compilationUnit.hashCode();
         NoArgsConstructorVisitor visitor = new NoArgsConstructorVisitor();
-        compilationUnit.clone().accept(visitor, null);
-        if (visitor.isModify()) {
-            LexicalPreservingPrinter.setup(compilationUnit);
-            compilationUnit.accept(visitor, null);
+        compilationUnit.accept(visitor, null);
+        // 如果存在变更，则操作
+        if (before != compilationUnit.hashCode()) {
             addImports(compilationUnit, meta);
-            String newBody = LexicalPreservingPrinter.print(compilationUnit);
-            // 以utf-8编码的方式写入文件中
-            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
     }
 
     @Getter
     class NoArgsConstructorVisitor extends ModifierVisitor<Void> {
-        private boolean modify = false;
 
         @Override
         public Visitable visit(ConstructorDeclaration n, Void arg) {
@@ -62,8 +50,6 @@ public class NoArgsConstructorJob extends JavaJob {
                 // 如果是没有内容的话，是可以替换成@NoArgsConstructor注解的形式的
                 if (StringUtils.isBlank(body)) {
                     log.info("替换无参构造方法：{}", nameAsString);
-                    // 设置标志位
-                    modify = true;
                     ClassOrInterfaceDeclaration parent = n.findParent(ClassOrInterfaceDeclaration.class).get();
                     addAnnotation(parent, meta);
                     return null;
