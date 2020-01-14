@@ -1,21 +1,18 @@
 package com.wangym.lombok.job.impl;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.type.PrimitiveType;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.JavaJob;
+import com.github.javaparser.ast.visitor.ModifierVisitor;
+import com.github.javaparser.ast.visitor.Visitable;
+import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -30,94 +27,97 @@ import static com.github.javaparser.ast.Modifier.PUBLIC;
  */
 @Component
 @Slf4j
-public class ReplaceGeneralCodeJob extends JavaJob {
+public class ReplaceGeneralCodeJob extends AbstractJavaJob {
+    private Metadata meta = new Metadata("Data", "lombok.Data");
 
     @Override
-    public void handle(File file) throws IOException {
-        byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
-        List<String> classNames = compilationUnit.findAll(ClassOrInterfaceDeclaration.class).stream()
-                .filter(c -> !c.isInterface())
-                .filter(this::test)
-                .map(ClassOrInterfaceDeclaration::getNameAsString)
-                .collect(Collectors.toList());
-        if (!classNames.isEmpty()) {
-            LexicalPreservingPrinter.setup(compilationUnit);
-            Metadata meta = new Metadata("Data", "lombok.Data");
-            // 找出符合条件的class进行处理
-            compilationUnit.findAll(ClassOrInterfaceDeclaration.class).stream()
-                    .filter(c -> classNames.contains(c.getNameAsString()))
-                    .forEach(c -> {
-                        c.getMethods().stream()
-                                .forEach(it -> c.remove(it));
-                        addAnnotation(c, meta);
-                    });
-            log.info("当前文件符合转换,class name:{}", file.getName());
+    public void process(CompilationUnit compilationUnit) {
+        int before = compilationUnit.hashCode();
+        GenernalCodeVisitor visitor = new GenernalCodeVisitor();
+        compilationUnit.accept(visitor, null);
+        // 如果存在变更，则操作
+        if (before != compilationUnit.hashCode()) {
             addImports(compilationUnit, meta);
-            String newBody = LexicalPreservingPrinter.print(compilationUnit);
-            // 暂时使用正则表达式的方式修正格式错误的问题
-            newBody = newBody.replaceAll(";import", ";\n\nimport");
-            // 以utf-8编码的方式写入文件中
-            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
     }
 
-    private boolean test(ClassOrInterfaceDeclaration clazz) {
-        ClassOrInterfaceDeclaration c = clazz.clone();
-        List<FieldDeclaration> fields = c.getFields().stream()
-                // 排除静态的字段
-                .filter(it -> {
-                    EnumSet<Modifier> sets = it.getModifiers();
-                    return !sets.contains(Modifier.STATIC);
-                })
-                .collect(Collectors.toList());
-        List<MethodDeclaration> methods = c.getMethods();
-        if (!fields.isEmpty() && (fields.size() * 2 == methods.size())) {
-            List<String> virtualMethods = fields.stream()
-                    .map(it -> {
-                        MethodDeclaration getter = createGetter(it);
-                        return Arrays.asList(getter.toString(), it.createSetter().toString());
-                    })
-                    .flatMap(List::stream)
-                    .collect(Collectors.toList());
-            // 验证全部的方法是否都是getter和setter
-            long count = methods.stream()
+    class GenernalCodeVisitor extends ModifierVisitor<Void> {
+        private boolean isTemplateCode;
+
+        @Override
+        public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
+            ClassOrInterfaceDeclaration c = n.clone();
+            List<FieldDeclaration> fields = c.getFields().stream()
+                    // 排除静态的字段
                     .filter(it -> {
-                        return !virtualMethods.contains(it.toString());
+                        EnumSet<Modifier> sets = it.getModifiers();
+                        return !sets.contains(Modifier.STATIC);
                     })
-                    .count();
-            return count == 0;
+                    .collect(Collectors.toList());
+            List<MethodDeclaration> methods = c.getMethods();
+            if (!fields.isEmpty() && (fields.size() * 2 == methods.size())) {
+                List<String> virtualMethods = fields.stream()
+                        .map(it -> {
+                            MethodDeclaration getter = createGetter(it);
+                            return Arrays.asList(getter.toString(), it.createSetter().toString());
+                        })
+                        .flatMap(List::stream)
+                        .collect(Collectors.toList());
+                // 验证全部的方法是否都是getter和setter
+                long count = methods.stream()
+                        .filter(it -> {
+                            return !virtualMethods.contains(it.toString());
+                        })
+                        .count();
+                isTemplateCode = count == 0;
+            }
+            if (isTemplateCode) {
+                addAnnotation(n, meta);
+            }
+            return super.visit(n, arg);
         }
-        return false;
-    }
 
-    private MethodDeclaration createGetter(FieldDeclaration field) {
-        if (field.getVariables().size() != 1) {
-            throw new IllegalStateException("You can use this only when the field declares only 1 variable name");
+        @Override
+        public Visitable visit(MethodDeclaration n, Void arg) {
+            // 如果是符合条件的类则把写的getter/setter模板代码删除
+            if (isTemplateCode) {
+                return null;
+            } else {
+                return super.visit(n, arg);
+            }
         }
-        Optional<ClassOrInterfaceDeclaration> parentClass = field.getAncestorOfType(ClassOrInterfaceDeclaration.class);
-        Optional<EnumDeclaration> parentEnum = field.getAncestorOfType(EnumDeclaration.class);
-        if (!(parentClass.isPresent() || parentEnum.isPresent())
-                || (parentClass.isPresent() && parentClass.get().isInterface())) {
-            throw new IllegalStateException("You can use this only when the field is attached to a class or an enum");
+
+        private MethodDeclaration createGetter(FieldDeclaration field) {
+            if (field.getVariables().size() != 1) {
+                throw new IllegalStateException("You can use this only when the field declares only 1 variable name");
+            }
+            Optional<ClassOrInterfaceDeclaration> parentClass = field
+                    .getAncestorOfType(ClassOrInterfaceDeclaration.class);
+            Optional<EnumDeclaration> parentEnum = field.getAncestorOfType(EnumDeclaration.class);
+            if (!(parentClass.isPresent() || parentEnum.isPresent())
+                    || (parentClass.isPresent() && parentClass.get().isInterface())) {
+                throw new IllegalStateException(
+                        "You can use this only when the field is attached to a class or an enum");
+            }
+            VariableDeclarator variable = field.getVariable(0);
+            String fieldName = variable.getNameAsString();
+            String fieldNameUpper = fieldName.toUpperCase().substring(0, 1)
+                    + fieldName.substring(1, fieldName.length());
+            String finalFieldNameUpper;
+            // 如果是boolean类型的字段，生成isXXX类型的方法
+            if (variable.getType().equals(PrimitiveType.booleanType())) {
+                finalFieldNameUpper = "is" + fieldNameUpper;
+            } else {
+                finalFieldNameUpper = "get" + fieldNameUpper;
+            }
+            final MethodDeclaration getter;
+            getter = parentClass.map(clazz -> clazz.addMethod(finalFieldNameUpper, PUBLIC))
+                    .orElseGet(() -> parentEnum.get().addMethod(finalFieldNameUpper, PUBLIC));
+            getter.setType(variable.getType());
+            BlockStmt blockStmt = new BlockStmt();
+            getter.setBody(blockStmt);
+            blockStmt.addStatement(new ReturnStmt(fieldName));
+            return getter;
         }
-        VariableDeclarator variable = field.getVariable(0);
-        String fieldName = variable.getNameAsString();
-        String fieldNameUpper = fieldName.toUpperCase().substring(0, 1) + fieldName.substring(1, fieldName.length());
-        String finalFieldNameUpper;
-        // 如果是boolean类型的字段，生成isXXX类型的方法
-        if (variable.getType().equals(PrimitiveType.booleanType())) {
-            finalFieldNameUpper = "is" + fieldNameUpper;
-        } else {
-            finalFieldNameUpper = "get" + fieldNameUpper;
-        }
-        final MethodDeclaration getter;
-        getter = parentClass.map(clazz -> clazz.addMethod(finalFieldNameUpper, PUBLIC))
-                .orElseGet(() -> parentEnum.get().addMethod(finalFieldNameUpper, PUBLIC));
-        getter.setType(variable.getType());
-        BlockStmt blockStmt = new BlockStmt();
-        getter.setBody(blockStmt);
-        blockStmt.addStatement(new ReturnStmt(fieldName));
-        return getter;
     }
 }

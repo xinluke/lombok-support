@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.FileCopyUtils;
 
@@ -29,7 +30,7 @@ public class ReplaceGeneralCodeJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/Base64Coder.java"));
+        job.handle(new ClassPathResource("GeneralCodeExample.java").getFile());
     }
 
     @Test
