@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.FileCopyUtils;
 
@@ -17,14 +18,14 @@ import java.io.IOException;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class ApplicationTests {
+public class ReplaceLoggerJobTest {
 
     @Autowired
     private ReplaceLoggerJob job;
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/CrashLogESHelper.java"));
+        job.handle(new ClassPathResource("LoggerExample.java").getFile());
     }
 
     @Test

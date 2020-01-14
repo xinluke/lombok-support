@@ -1,6 +1,5 @@
 package com.wangym.lombok.job.impl;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
@@ -12,17 +11,14 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.wangym.lombok.job.JavaJob;
+import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -34,38 +30,28 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-public class ReplaceLoggerJob extends JavaJob {
+public class ReplaceLoggerJob extends AbstractJavaJob {
 
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
     @Value("${loggerSearchAll:false}")
     private boolean fullSearch;
 
     @Override
-    public void handle(File file) throws IOException {
-        byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
+    public void process(CompilationUnit compilationUnit) {
         LoggerVisitor visitor = new LoggerVisitor(fullSearch);
-        // 预检查
-        compilationUnit.clone().findAll(FieldDeclaration.class).forEach(it -> visitor.visit(it, null));
-        if (visitor.isModify()) {
-            log.info("清除原来的log声明，替换成@slf4j形式");
-            LexicalPreservingPrinter.setup(compilationUnit);
-            // 替换成@slf4j注解
-            compilationUnit.accept(visitor, null);
-            // rename变量
-            String loggerName = visitor.getLoggerName();
+        compilationUnit.accept(visitor, null);
+        //compilationUnit.findAll(FieldDeclaration.class).forEach(it -> visitor.visit(it, null));
+        // rename变量
+        String loggerName = visitor.getLoggerName();
+        if (StringUtils.isNoneBlank(loggerName)) {
             compilationUnit.accept(new LoggerRenameVisitor(loggerName), null);
             addImports(compilationUnit, meta);
             deleteImports(compilationUnit);
-            String newBody = LexicalPreservingPrinter.print(compilationUnit);
-            // 以utf-8编码的方式写入文件中
-            FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
         }
     }
 
     @Getter
     class LoggerVisitor extends ModifierVisitor<Void> {
-        private boolean modify = false;
         private String loggerName;
         // 可能匹配Log变量的类型名称
         private List<String> asList = Arrays.asList("Logger", "Log");
@@ -102,8 +88,6 @@ public class ReplaceLoggerJob extends JavaJob {
                     for (String target : targetList) {
                         boolean check = text.contains(target);
                         if (check) {
-                            // 设置标志位
-                            modify = true;
                             // 保存loggerName
                             loggerName = variable.getNameAsString();
                             addAnnotation(parent, meta);
