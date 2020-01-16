@@ -3,11 +3,12 @@ package com.wangym.lombok.job;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.IOException;
-
+@Slf4j
 public abstract class AbstractJavaJob extends JavaJob {
 
     @Override
@@ -28,6 +29,7 @@ public abstract class AbstractJavaJob extends JavaJob {
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
             // 以utf-8编码的方式写入文件中
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
+            log.info("文件处理完成");
         }
     }
 

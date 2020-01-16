@@ -26,11 +26,14 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class ReplaceRequestMappingJob extends AbstractJavaJob {
-
+    private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+            "DeleteMapping", "PatchMapping");
     @Value("${mergeRequestUrl:false}")
     private boolean enableMergeRequestUrl;
     @Value("${onlySupportJson:false}")
     private boolean onlySupportJson;
+    @Value("${addApiOperation:true}")
+    private boolean apiOperation;
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {
         mapping.put("RequestMethod.GET",
@@ -51,6 +54,9 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor(compilationUnit);
         compilationUnit.accept(visitor, null);
         compilationUnit.accept(new RequiresPermissionsVisitor(), null);
+        if (apiOperation) {
+            compilationUnit.accept(new ApiOperationVisitor(), null);
+        }
         // 如果存在变更，则操作
         if (before != compilationUnit.hashCode()) {
             deleteImports(compilationUnit);
@@ -58,8 +64,6 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
     }
 
     class RequiresPermissionsVisitor extends AbstractRequestMappingVisitor {
-        private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
-                "DeleteMapping", "PatchMapping");
         private NormalAnnotationExpr expr;
 
         @Override
@@ -84,6 +88,38 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                 method.getAnnotations().add(expr);
             }
             return super.visit(method, arg);
+        }
+    }
+
+    class ApiOperationVisitor extends AbstractRequestMappingVisitor {
+        @Override
+        public Visitable visit(MethodDeclaration method, Void arg) {
+            // 确定是否是RequestMappingEndpoint
+            if (getTargetAnn(method, annNames) == null) {
+                return super.visit(method, arg);
+            }
+            // 如果方法上面没有自定义的注解，则准备添加一个
+            SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(method, Arrays.asList("ApiOperation"));
+            if (singleExpr != null) {
+                method.remove(singleExpr);
+                // 原本注解的内容移过去
+                StringLiteralExpr expr = (StringLiteralExpr) singleExpr.getMemberValue();
+                String val = expr.asString();
+                method.addAnnotation(geneApiOperationAnn(val));
+            }
+            NormalAnnotationExpr methodExpr = getTargetAnn(method, Arrays.asList("ApiOperation"));
+            if (methodExpr == null) {
+                // 在第一个位置进行插入
+                method.getAnnotations().addFirst(geneApiOperationAnn(""));
+            }
+            return super.visit(method, arg);
+        }
+
+        private NormalAnnotationExpr geneApiOperationAnn(String val) {
+            // 构造一个标准的注解格式
+            MemberValuePair p = new MemberValuePair("value", new StringLiteralExpr(val));
+            NormalAnnotationExpr ann = new NormalAnnotationExpr(new Name("ApiOperation"), new NodeList<>(p));
+            return ann;
         }
     }
 
