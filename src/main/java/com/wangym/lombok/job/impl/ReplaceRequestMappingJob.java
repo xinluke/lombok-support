@@ -32,7 +32,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
     private boolean enableMergeRequestUrl;
     @Value("${onlySupportJson:false}")
     private boolean onlySupportJson;
-    @Value("${addApiOperation:true}")
+    @Value("${addApiOperation:false}")
     private boolean apiOperation;
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {
@@ -105,7 +105,8 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                 // 原本注解的内容移过去
                 StringLiteralExpr expr = (StringLiteralExpr) singleExpr.getMemberValue();
                 String val = expr.asString();
-                method.addAnnotation(geneApiOperationAnn(val));
+                // 在第一个位置进行插入
+                method.getAnnotations().addFirst(geneApiOperationAnn(val));
             }
             NormalAnnotationExpr methodExpr = getTargetAnn(method, Arrays.asList("ApiOperation"));
             if (methodExpr == null) {
