@@ -32,7 +32,7 @@ public class ReplaceLoggerPlaceholderJob extends AbstractJavaJob {
             return;
         }
         LoggerPlaceholderVisitor visitor = new LoggerPlaceholderVisitor();
-        compilationUnit.clone().accept(visitor, null);
+        compilationUnit.accept(visitor, null);
     }
 
     private boolean isTarget(ClassOrInterfaceDeclaration c) {
