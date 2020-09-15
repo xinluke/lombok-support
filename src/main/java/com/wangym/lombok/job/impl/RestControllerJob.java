@@ -25,7 +25,7 @@ public class RestControllerJob extends AbstractJavaJob {
     @Override
     public void process(CompilationUnit compilationUnit) {
         ResponseBodyConstructorVisitor visitor = new ResponseBodyConstructorVisitor();
-        compilationUnit.clone().accept(visitor, null);
+        compilationUnit.accept(visitor, null);
     }
 
     class ResponseBodyConstructorVisitor extends ModifierVisitor<Void> {
