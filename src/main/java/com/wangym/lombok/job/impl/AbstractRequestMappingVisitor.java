@@ -46,4 +46,15 @@ public class AbstractRequestMappingVisitor extends ModifierVisitor<Void> {
         }
         return null;
     }
+    protected SingleMemberAnnotationExpr getSingleTargetAnn(ClassOrInterfaceDeclaration it, List<String> annNames) {
+        NodeList<AnnotationExpr> anns = it.getAnnotations();
+        for (AnnotationExpr item : anns) {
+            if (annNames.contains(item.getNameAsString())) {
+                if (item instanceof SingleMemberAnnotationExpr) {
+                    return (SingleMemberAnnotationExpr) item;
+                }
+            }
+        }
+        return null;
+    }
 }
