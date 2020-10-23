@@ -9,6 +9,7 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
+@Setter
 public class ReplaceRequestMappingJob extends AbstractJavaJob {
     private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
             "DeleteMapping", "PatchMapping");
@@ -33,7 +35,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
     private boolean enableMergeRequestUrl;
     @Value("${onlySupportJson:false}")
     private boolean onlySupportJson;
-    @Value("${addApiOperation:true}")
+    @Value("${addApiOperation:false}")
     private boolean apiOperation;
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {
@@ -144,6 +146,10 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             if (expr != null) {
                 doHandle(expr);
             }
+            SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(method, annNames);
+            if (singleExpr != null) {
+                doHandle(singleExpr);
+            }
             return super.visit(method, arg);
         }
 
@@ -151,6 +157,11 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
             // 从类上拿到注解
             isInterface = n.isInterface();
+            searchPath(n);
+            searchPath0(n);
+            return super.visit(n, arg);
+        }
+        private void searchPath(ClassOrInterfaceDeclaration n) {
             NormalAnnotationExpr expr = getTargetAnn(n, annNames);
             if (expr != null) {
                 NodeList<MemberValuePair> pairs = expr.getPairs();
@@ -166,7 +177,20 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                     n.remove(expr);
                 }
             }
-            return super.visit(n, arg);
+        }
+
+        private void searchPath0(ClassOrInterfaceDeclaration n) {
+            SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(n, annNames);
+            if (singleExpr != null) {
+                StringLiteralExpr expr = (StringLiteralExpr) singleExpr.getMemberValue();
+                // 这里面的值必然是url
+                String val = expr.asString();
+                // record
+                recordPath(val);
+                if (hasPath()) {
+                    n.remove(singleExpr);
+                }
+            }
         }
 
         void recordPath(String newPath) {
@@ -180,6 +204,15 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             return path != null;
         }
 
+        private void doHandle(SingleMemberAnnotationExpr expr) {
+            StringLiteralExpr v = (StringLiteralExpr) expr.getMemberValue();
+            if (hasPath()) {
+                // 合并url
+                // v.setString(path + v.getValue());
+                // 上述写法好像不会生效，换下述写法
+                expr.setMemberValue(new StringLiteralExpr(path + v.getValue()));
+            }
+        }
         private void doHandle(NormalAnnotationExpr expr) {
             NodeList<MemberValuePair> pairs = expr.getPairs();
             MemberValuePair temp = null;
