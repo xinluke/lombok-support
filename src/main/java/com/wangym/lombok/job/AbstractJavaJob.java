@@ -3,6 +3,7 @@ package com.wangym.lombok.job;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.FileCopyUtils;
 
@@ -11,6 +12,8 @@ import java.io.IOException;
 @Slf4j
 public abstract class AbstractJavaJob extends JavaJob {
 
+    @Setter
+    private boolean showDetail;
     @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
@@ -27,6 +30,9 @@ public abstract class AbstractJavaJob extends JavaJob {
             // 操作真正的对象
             process(compilationUnit);
             String newBody = LexicalPreservingPrinter.print(compilationUnit);
+            if(showDetail) {
+                log.info("文件处理成功\n{}", newBody);
+            }
             // 以utf-8编码的方式写入文件中
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
             log.info("文件处理完成");

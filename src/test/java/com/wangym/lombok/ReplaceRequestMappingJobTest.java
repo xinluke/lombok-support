@@ -23,6 +23,8 @@ public class ReplaceRequestMappingJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new ClassPathResource("RequestMappingExample.java").getFile());
+        job.setEnableMergeRequestUrl(true);
+        job.setShowDetail(true);
+        job.handle(new ClassPathResource("SdkBlackListServiceClient.java").getFile());
     }
 }

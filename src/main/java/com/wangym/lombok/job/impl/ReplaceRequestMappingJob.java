@@ -28,11 +28,12 @@ import java.util.stream.Collectors;
 public class ReplaceRequestMappingJob extends AbstractJavaJob {
     private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
             "DeleteMapping", "PatchMapping");
+    // 是否要将类上面的url和方法拼接到一起
     @Value("${mergeRequestUrl:false}")
     private boolean enableMergeRequestUrl;
     @Value("${onlySupportJson:false}")
     private boolean onlySupportJson;
-    @Value("${addApiOperation:false}")
+    @Value("${addApiOperation:true}")
     private boolean apiOperation;
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {
@@ -106,7 +107,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                 StringLiteralExpr expr = (StringLiteralExpr) singleExpr.getMemberValue();
                 String val = expr.asString();
                 // 在第一个位置进行插入
-                method.getAnnotations().addFirst(geneApiOperationAnn(val));
+                method.getAnnotations().addLast(geneApiOperationAnn(val));
             }
             NormalAnnotationExpr methodExpr = getTargetAnn(method, Arrays.asList("ApiOperation"));
             if (methodExpr == null) {
@@ -130,6 +131,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         // 父级路径
         private String path;
         private CompilationUnit compilationUnit;
+        private boolean isInterface = false;
 
         public RequestMappingConstructorVisitor(CompilationUnit compilationUnit) {
             super();
@@ -147,6 +149,8 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
 
         @Override
         public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
+            // 从类上拿到注解
+            isInterface = n.isInterface();
             NormalAnnotationExpr expr = getTargetAnn(n, annNames);
             if (expr != null) {
                 NodeList<MemberValuePair> pairs = expr.getPairs();
@@ -167,7 +171,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
 
         void recordPath(String newPath) {
             // 只更新一次
-            if (path == null && enableMergeRequestUrl) {
+            if (path == null && enableMergeRequestUrl && isInterface) {
                 path = newPath;
             }
         }
