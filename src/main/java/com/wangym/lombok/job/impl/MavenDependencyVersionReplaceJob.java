@@ -17,8 +17,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author wangym
@@ -61,6 +64,8 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
     class ModelWrapper {
         private Model model;
         private boolean hasModify = false;
+        // 白名单列表
+        private List<String> standardList = Arrays.asList("java.version");
 
         public ModelWrapper(Model model) {
             super();
@@ -81,11 +86,40 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 // 说明pom.xml有变动
                 hasModify = true;
             }
+            mergeProperty();
+        }
+
+        private void mergeProperty() {
+            // 得到最全的版本列表
+            List<String> versionList = model.getDependencies().stream().filter(it -> {
+                String version = it.getVersion();
+                if (version != null) {
+                    return version.startsWith("${") && version.endsWith(".version}");
+                }
+                // 沒有版本的情況,这种是使用parent制定的版本列表
+                return false;
+            }).map(it -> {
+                int length = it.getVersion().length();
+                //"${" + key + "}",去除包裹的的模式字符
+                return it.getVersion().substring(2, length - 1);
+            }).collect(Collectors.toList());
+            // 将重复的属性声明合并，在maven的默认处理中，同名的多次声明只有最后一次是生效的
+            Properties prop = model.getProperties();
+            List<String> refVersionList = prop.stringPropertyNames().stream() //
+                    .filter((item) -> {
+                        return !standardList.contains(item) && item.endsWith(".version");
+                    }) // 只关心我们自定义的version属性
+                    .collect(Collectors.toList());
+            // 得到无用的依赖版本列表
+            refVersionList.removeAll(versionList);
+            // 去除无用的依赖版本列表
+            refVersionList.forEach(prop::remove);
         }
 
         private void insertProperty(String artifactId, String version) {
             String key = artifactId + ".version";
             Properties prop = model.getProperties();
+            // 如果当前key存在会产生覆盖效果
             prop.setProperty(key, version);
         }
 
