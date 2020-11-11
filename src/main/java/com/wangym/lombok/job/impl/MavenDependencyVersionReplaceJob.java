@@ -17,8 +17,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -91,7 +94,8 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
 
         private void mergeProperty() {
             // 得到最全的版本列表
-            List<String> versionList = model.getDependencies().stream().filter(it -> {
+            List<Dependency> dependencies = model.getDependencies();
+            List<String> versionList = dependencies.stream().filter(it -> {
                 String version = it.getVersion();
                 if (version != null) {
                     return version.startsWith("${") && version.endsWith(".version}");
@@ -114,6 +118,28 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             refVersionList.removeAll(versionList);
             // 去除无用的依赖版本列表
             refVersionList.forEach(prop::remove);
+            // 删除重复的依赖声明
+            Map<String, Long> collect = dependencies
+                    .stream()
+                    .map(Dependency::toString)
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+            collect.forEach((k,v)->{
+                //如果不唯一则操作
+                if(v>1) {
+                    checkDependenciesByKey(k, v);
+                }
+            });
+        }
+
+        private void checkDependenciesByKey(String key, long index) {
+            List<Dependency> dependencies = model.getDependencies();
+            for (Iterator<Dependency> iterator = dependencies.iterator(); iterator.hasNext();) {
+                Dependency dependency = (Dependency) iterator.next();
+                if (key.equals(dependency.toString()) && index > 1) {
+                    iterator.remove();
+                    index--;
+                }
+            }
         }
 
         private void insertProperty(String artifactId, String version) {

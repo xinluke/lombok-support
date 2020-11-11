@@ -19,6 +19,7 @@
 
     <properties>
         <!-- 期望更新成当前正在引用的版本号 -->
+        <javaparser-symbol-solver-core.version>3.2.0</javaparser-symbol-solver-core.version>
         <javaparser-symbol-solver-core.version>3.6.5</javaparser-symbol-solver-core.version>
         <!-- 无用的版本号，期望删除掉此纪录  -->
         <test-useless.version>3.6.5</test-useless.version>
@@ -54,13 +55,18 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.5</version>
+            <version>3.4</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.commonjava.maven/maven3-model-jdom-support -->
         <dependency>
             <groupId>org.commonjava.maven</groupId>
             <artifactId>maven3-model-jdom-support</artifactId>
             <version>1.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.5</version>
         </dependency>
         
     </dependencies>
