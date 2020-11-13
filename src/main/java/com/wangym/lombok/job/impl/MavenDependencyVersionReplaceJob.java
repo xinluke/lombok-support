@@ -10,6 +10,7 @@ import org.apache.maven.model.io.jdom.MavenJDOMWriter;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.jdom2.JDOMException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -17,12 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -34,6 +30,9 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class MavenDependencyVersionReplaceJob extends AbstractJob {
+
+    @Autowired
+    private DependencyVersionService dvService;
 
     public MavenDependencyVersionReplaceJob() {
         super("pom.xml");
@@ -53,7 +52,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         MavenXpp3Reader reader = new MavenXpp3Reader();
         Model model = reader.read(new FileInputStream(file));
         // Editing
-        ModelWrapper modelWrapper = new ModelWrapper(model);
+        ModelWrapper modelWrapper = new ModelWrapper(dvService, model);
         modelWrapper.process();
         if (modelWrapper.isHasModify()) {
             // Writing
@@ -65,13 +64,15 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
 
     @Getter
     class ModelWrapper {
+        private DependencyVersionService dvService;
         private Model model;
         private boolean hasModify = false;
         // 白名单列表
         private List<String> standardList = Arrays.asList("java.version");
 
-        public ModelWrapper(Model model) {
+        public ModelWrapper(DependencyVersionService dvService, Model model) {
             super();
+            this.dvService = dvService;
             this.model = model;
         }
 
@@ -116,8 +117,12 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     .collect(Collectors.toList());
             // 得到无用的依赖版本列表
             refVersionList.removeAll(versionList);
-            // 去除无用的依赖版本列表
-            refVersionList.forEach(prop::remove);
+            if(!refVersionList.isEmpty()) {
+                // 去除无用的依赖版本列表
+                refVersionList.forEach(prop::remove);
+                // 说明pom.xml有变动
+                hasModify = true;
+            }
             // 删除重复的依赖声明
             Map<String, Long> collect = dependencies
                     .stream()
@@ -129,14 +134,34 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     checkDependenciesByKey(k, v);
                 }
             });
+            // 如果存在依赖的版本号，则更新版本号
+            checkAndUpdateVersion();
+            if(dvService.isDeleteDistributionManagement()) {
+                model.setDistributionManagement(null);
+                // 说明pom.xml有变动
+                hasModify = true;
+            }
+        }
+
+        private void checkAndUpdateVersion() {
+            Properties prop = model.getProperties();
+            for (VerModelData item : dvService.getUpdateList()) {
+                if (prop.containsKey(item.getName())) {
+                    prop.setProperty(item.getName(), item.getVersion());
+                    // 说明pom.xml有变动
+                    hasModify = true;
+                }
+            }
         }
 
         private void checkDependenciesByKey(String key, long index) {
             List<Dependency> dependencies = model.getDependencies();
             for (Iterator<Dependency> iterator = dependencies.iterator(); iterator.hasNext();) {
-                Dependency dependency = (Dependency) iterator.next();
+                Dependency dependency = iterator.next();
                 if (key.equals(dependency.toString()) && index > 1) {
                     iterator.remove();
+                    // 说明pom.xml有变动
+                    hasModify = true;
                     index--;
                 }
             }
@@ -163,6 +188,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             }
             return true;
         }
+
 
     }
 
