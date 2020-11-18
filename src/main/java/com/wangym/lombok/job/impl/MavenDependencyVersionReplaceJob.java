@@ -142,6 +142,11 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 // 说明pom.xml有变动
                 hasModify = true;
             }
+            if(dvService.isDeleteDependencyManagement()) {
+                model.setDependencyManagement(null);
+                // 说明pom.xml有变动
+                hasModify = true;
+            }
         }
 
         private void checkAndUpdateVersion() {

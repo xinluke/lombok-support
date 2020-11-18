@@ -19,4 +19,7 @@ public class DependencyVersionService {
     private List<VerModelData> deleteList = new ArrayList<>();
     // 是否删除构建库配置
     private boolean deleteDistributionManagement;
+    // 是否删除DependencyManagement配置
+    private boolean deleteDependencyManagement;
+
 }
