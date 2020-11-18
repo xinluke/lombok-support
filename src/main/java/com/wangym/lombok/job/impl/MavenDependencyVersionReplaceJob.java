@@ -137,12 +137,12 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             });
             // 如果存在依赖的版本号，则更新版本号
             checkAndUpdateVersion();
-            if(dvService.isDeleteDistributionManagement()) {
+            if (dvService.isDeleteDistributionManagement() && model.getDistributionManagement() != null) {
                 model.setDistributionManagement(null);
                 // 说明pom.xml有变动
                 hasModify = true;
             }
-            if(dvService.isDeleteDependencyManagement()) {
+            if (dvService.isDeleteDependencyManagement() && model.getDependencyManagement() != null) {
                 model.setDependencyManagement(null);
                 // 说明pom.xml有变动
                 hasModify = true;
