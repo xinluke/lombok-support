@@ -6,3 +6,7 @@ pom:
      - name: javaparser-symbol-solver-core.version
        version: 3.3.0
     deleteDistributionManagement: false
+logging:
+  level:
+     com.wangym.lombok.job.impl.MavenDependencyVersionReplaceJob: debug
+    
