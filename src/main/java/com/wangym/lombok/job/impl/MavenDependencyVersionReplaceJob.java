@@ -55,6 +55,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         ModelWrapper modelWrapper = new ModelWrapper(dvService, model);
         modelWrapper.process();
         if (modelWrapper.isHasModify()) {
+            log.debug("文件需要更新:{}",file.getPath());
             // Writing
             new MavenJDOMWriter(model)
                     .setExpandEmptyElements(false)// pom.xml需要简化配置，所以override原本的配置，设置为自闭合
