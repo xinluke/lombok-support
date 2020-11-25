@@ -2,6 +2,8 @@ package com.wangym.lombok.job.impl;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.Modifier.Keyword;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
@@ -14,12 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static com.github.javaparser.ast.Modifier.PUBLIC;
 
 /**
  * @author wangym
@@ -50,8 +49,8 @@ public class ReplaceGeneralCodeJob extends AbstractJavaJob {
             List<FieldDeclaration> fields = c.getFields().stream()
                     // 排除静态的字段
                     .filter(it -> {
-                        EnumSet<Modifier> sets = it.getModifiers();
-                        return !sets.contains(Modifier.STATIC);
+                        NodeList<Modifier> sets = it.getModifiers();
+                        return !sets.contains(Modifier.staticModifier());
                     })
                     .collect(Collectors.toList());
             List<MethodDeclaration> methods = c.getMethods();
@@ -92,8 +91,8 @@ public class ReplaceGeneralCodeJob extends AbstractJavaJob {
                 throw new IllegalStateException("You can use this only when the field declares only 1 variable name");
             }
             Optional<ClassOrInterfaceDeclaration> parentClass = field
-                    .getAncestorOfType(ClassOrInterfaceDeclaration.class);
-            Optional<EnumDeclaration> parentEnum = field.getAncestorOfType(EnumDeclaration.class);
+                    .findAncestor(ClassOrInterfaceDeclaration.class);
+            Optional<EnumDeclaration> parentEnum = field.findAncestor(EnumDeclaration.class);
             if (!(parentClass.isPresent() || parentEnum.isPresent())
                     || (parentClass.isPresent() && parentClass.get().isInterface())) {
                 throw new IllegalStateException(
@@ -111,8 +110,8 @@ public class ReplaceGeneralCodeJob extends AbstractJavaJob {
                 finalFieldNameUpper = "get" + fieldNameUpper;
             }
             final MethodDeclaration getter;
-            getter = parentClass.map(clazz -> clazz.addMethod(finalFieldNameUpper, PUBLIC))
-                    .orElseGet(() -> parentEnum.get().addMethod(finalFieldNameUpper, PUBLIC));
+            getter = parentClass.map(clazz -> clazz.addMethod(finalFieldNameUpper, Keyword.PUBLIC))
+                    .orElseGet(() -> parentEnum.get().addMethod(finalFieldNameUpper, Keyword.PUBLIC));
             getter.setType(variable.getType());
             BlockStmt blockStmt = new BlockStmt();
             getter.setBody(blockStmt);

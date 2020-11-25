@@ -1,6 +1,7 @@
 package com.wangym.lombok;
 
 import com.github.javaparser.JavaParser;
+import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
@@ -36,7 +37,7 @@ public class ReplaceGeneralCodeJobTest {
     @Test
     public void print() throws IOException {
         System.setProperty("line.separator", "\n");
-        CompilationUnit compilationUnit = JavaParser.parse("package com.wangym.test;\nclass A{ }");
+        CompilationUnit compilationUnit = StaticJavaParser.parse("package com.wangym.test;\nclass A{ }");
         LexicalPreservingPrinter.setup(compilationUnit);
         NodeList<ImportDeclaration> imports = compilationUnit.getImports();
         String str = "lombok.Data";

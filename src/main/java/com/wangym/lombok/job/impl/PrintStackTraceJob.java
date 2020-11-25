@@ -42,7 +42,7 @@ public class PrintStackTraceJob extends AbstractJavaJob {
         public Visitable visit(MethodCallExpr it, Void arg) {
             if ("printStackTrace".equals(it.getName().toString()) && it.getArguments().isEmpty()) {
                 log.info("存在[e.printStackTrace()]的代码块，将进行替换");
-                ClassOrInterfaceDeclaration parent = it.findParent(ClassOrInterfaceDeclaration.class).get();
+                ClassOrInterfaceDeclaration parent = it.findAncestor(ClassOrInterfaceDeclaration.class).get();
                 addAnnotation(parent, meta);
                 addImports(compilationUnit, meta);
                 return process(it);

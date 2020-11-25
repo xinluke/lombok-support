@@ -1,6 +1,6 @@
 package com.wangym.lombok.job;
 
-import com.github.javaparser.JavaParser;
+import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import lombok.Setter;
@@ -18,7 +18,7 @@ public abstract class AbstractJavaJob extends JavaJob {
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         String code = new String(bytes, "utf-8");
-        CompilationUnit compilationUnit = JavaParser.parse(code);
+        CompilationUnit compilationUnit = StaticJavaParser.parse(code);
         int before = compilationUnit.hashCode();
         CompilationUnit clone = compilationUnit.clone();
         // 进行预操作

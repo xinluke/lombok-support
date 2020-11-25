@@ -1,6 +1,6 @@
 package com.wangym.lombok.job.impl;
 
-import com.github.javaparser.JavaParser;
+import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -37,7 +37,7 @@ public class StatJob extends JavaJob {
     @Override
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
+        CompilationUnit compilationUnit = StaticJavaParser.parse(new String(bytes, "utf-8"));
         StatVisitor visitor = new StatVisitor();
         compilationUnit.clone().accept(visitor, null);
     }

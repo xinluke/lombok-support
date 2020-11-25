@@ -1,6 +1,6 @@
 package com.wangym.lombok;
 
-import com.github.javaparser.JavaParser;
+import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
@@ -32,7 +32,7 @@ public class ReplaceLoggerJobTest {
     public void contextLoads() throws IOException {
         File file = new File("c:/AppGroupController.java");
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
-        CompilationUnit compilationUnit = JavaParser.parse(new String(bytes, "utf-8"));
+        CompilationUnit compilationUnit = StaticJavaParser.parse(new String(bytes, "utf-8"));
         LexicalPreservingPrinter.setup(compilationUnit);
         String newBody = LexicalPreservingPrinter.print(compilationUnit);
         // 以utf-8编码的方式写入文件中
@@ -41,7 +41,7 @@ public class ReplaceLoggerJobTest {
 
     @Test
     public void print() throws IOException {
-        CompilationUnit cu = JavaParser.parse("class A { }");
+        CompilationUnit cu = StaticJavaParser.parse("class A { }");
         LexicalPreservingPrinter.setup(cu);
         cu.findAll(ClassOrInterfaceDeclaration.class).stream()
                 .forEach(c -> {

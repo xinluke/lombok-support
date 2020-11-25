@@ -44,7 +44,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             if (scope.isPresent() && "System.out".equals(scope.get().toString())
                     && n.getNameAsString().startsWith("print")) {
                 log.info("存在[System.out.println()]代码块，将进行替换");
-                ClassOrInterfaceDeclaration parent = n.findParent(ClassOrInterfaceDeclaration.class).get();
+                ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                 addAnnotation(parent, meta);
                 addImports(compilationUnit, meta);
                 return process(n);

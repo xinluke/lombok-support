@@ -82,7 +82,7 @@ public class ReplaceLoggerJob extends AbstractJavaJob {
                 Expression exp = initializer.get();
                 if (exp instanceof MethodCallExpr) {
                     String text = ((MethodCallExpr) exp).getArgument(0).toString();
-                    ClassOrInterfaceDeclaration parent = field.findParent(ClassOrInterfaceDeclaration.class).get();
+                    ClassOrInterfaceDeclaration parent = field.findAncestor(ClassOrInterfaceDeclaration.class).get();
                     String className = parent.getNameAsString();
                     List<String> targetList = Arrays.asList(className, "getClass");
                     for (String target : targetList) {

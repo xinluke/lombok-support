@@ -39,7 +39,7 @@ public class NoArgsConstructorJob extends AbstractJavaJob {
 
         @Override
         public Visitable visit(ConstructorDeclaration n, Void arg) {
-            if (n.getModifiers().contains(Modifier.PUBLIC)) {
+            if (n.getModifiers().contains(Modifier.publicModifier())) {
                 String nameAsString = n.getNameAsString();
                 log.debug("读取到无参构造方法：{}", nameAsString);
                 String body = n.getBody().toString().trim();
@@ -50,7 +50,7 @@ public class NoArgsConstructorJob extends AbstractJavaJob {
                 // 如果是没有内容的话，是可以替换成@NoArgsConstructor注解的形式的
                 if (StringUtils.isBlank(body)) {
                     log.info("替换无参构造方法：{}", nameAsString);
-                    ClassOrInterfaceDeclaration parent = n.findParent(ClassOrInterfaceDeclaration.class).get();
+                    ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                     addAnnotation(parent, meta);
                     return null;
                 }
