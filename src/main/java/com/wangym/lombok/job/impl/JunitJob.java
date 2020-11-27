@@ -47,7 +47,10 @@ public class JunitJob extends AbstractJavaJob {
         @Override
         public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
             // 按junit的格式重命名类名
-            name = n.getNameAsString() + "Test";
+            String name = n.getNameAsString();
+            if(!name.endsWith("Test")) {
+                name = name + "Test";
+            }
             n.setName(name);
             return super.visit(n, arg);
         }
