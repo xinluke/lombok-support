@@ -1,6 +1,7 @@
 loggerSearchAll: true
 maven.trim.enable: true
 junit.resolver.enable: true
+move.resolver.enable: true
 pom:
   version:
     updateList:
