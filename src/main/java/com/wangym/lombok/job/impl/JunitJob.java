@@ -11,6 +11,7 @@ import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(value = "junit.resolver.enable", havingValue = "true")
 @Component
 @Slf4j
-public class JunitJob extends AbstractJavaJob  {
+public class JunitJob extends AbstractJavaJob {
     private Metadata meta = new Metadata("Test", "org.junit.Test");
 
     @Override
@@ -31,7 +32,25 @@ public class JunitJob extends AbstractJavaJob  {
         compilationUnit.accept(visitor, null);
     }
 
-    class MainMehtodVisitor extends ModifierVisitor<Void> {
+    @Override
+    public String afterProcess(CompilationUnit compilationUnit) {
+        // 此处需要
+        JunitMehtodVisitor visitor = new JunitMehtodVisitor();
+        compilationUnit.accept(visitor, null);
+        return visitor.getName() + ".java";
+    }
+
+    @Getter
+    class JunitMehtodVisitor extends ModifierVisitor<Void> {
+        private String name;
+
+        @Override
+        public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
+            // 按junit的格式重命名类名
+            name = n.getNameAsString() + "Test";
+            n.setName(name);
+            return super.visit(n, arg);
+        }
 
         @Override
         public Visitable visit(MethodDeclaration n, Void arg) {
@@ -42,15 +61,37 @@ public class JunitJob extends AbstractJavaJob  {
                 ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                 if (isNotSpringBootMain(parent)) {
                     log.info("找到对应的方法:{}");
-                    //去掉static方法标识符
-                    //加@Test注解
-                    //去掉无用的方法参数
+                    // 去掉static方法标识符
+                    // 加@Test注解
+                    // 去掉无用的方法参数
                     set.remove(Modifier.staticModifier());
                     n.getAnnotations().add(new MarkerAnnotationExpr("Test"));
                     n.getParameters().clear();
                     addImports(n.findCompilationUnit().get(), meta);
                 }
 
+            } else {
+                // 只保留静态方法
+                if (!set.contains(Modifier.staticModifier())) {
+                    return null;
+                }
+            }
+            return super.visit(n, arg);
+        }
+    }
+
+    class MainMehtodVisitor extends ModifierVisitor<Void> {
+        @Override
+        public Visitable visit(MethodDeclaration n, Void arg) {
+            NodeList<Modifier> set = n.getModifiers();
+            String methodName = n.getNameAsString();
+            boolean flag = set.contains(Modifier.staticModifier()) && set.contains(Modifier.publicModifier());
+            if (flag && "main".equals(methodName)) {
+                ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
+                if (isNotSpringBootMain(parent)) {
+                    // 删除掉main入口方法
+                }
+                return null;
             }
             return super.visit(n, arg);
         }

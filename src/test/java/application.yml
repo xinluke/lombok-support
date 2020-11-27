@@ -1,10 +1,12 @@
 loggerSearchAll: true
 maven.trim.enable: true
+junit.resolver.enable: true
 pom:
   version:
     updateList:
      - name: javaparser-symbol-solver-core.version
        version: 3.3.0
+       
     deleteDistributionManagement: false
     deleteDependencyManagement: false
 logging:
