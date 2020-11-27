@@ -90,8 +90,8 @@ public class JunitJob extends AbstractJavaJob {
                 ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                 if (isNotSpringBootMain(parent)) {
                     // 删除掉main入口方法
+                	return null;
                 }
-                return null;
             }
             return super.visit(n, arg);
         }

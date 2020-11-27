@@ -45,6 +45,11 @@ public class JunitJobTest {
         // System.out.println(compilationUnit);
         System.out.println(newBody);
     }
+    
+    @Test
+    public void handle2() throws IOException {
+    	job.handle(new ClassPathResource("Application.java").getFile());
+    }
 
     class TestVisitor extends ModifierVisitor<Void> {
 
