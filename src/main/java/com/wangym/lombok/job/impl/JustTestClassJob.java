@@ -2,6 +2,8 @@ package com.wangym.lombok.job.impl;
 
 import com.wangym.lombok.job.AbstractJob;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.io.FileUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +25,7 @@ public class JustTestClassJob extends AbstractJob {
         if (file.getName().endsWith("Test.java") && path.contains("src\\main\\java")) {
             String newPath = path.replace("src\\main\\java", "src\\test\\java");
             log.info("file {} remove to {}",path,newPath);
-            file.renameTo(new File(newPath));
+            FileUtils.moveFile(file,new File(newPath));
         }
     }
 
