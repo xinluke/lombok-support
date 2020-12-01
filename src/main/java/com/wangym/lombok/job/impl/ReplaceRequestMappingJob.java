@@ -144,13 +144,21 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         public Visitable visit(MethodDeclaration method, Void arg) {
             NormalAnnotationExpr expr = getTargetAnn(method, annNames);
             if (expr != null) {
+                log(expr);
                 doHandle(expr);
             }
             SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(method, annNames);
             if (singleExpr != null) {
+                log(singleExpr);
                 doHandle(singleExpr);
             }
             return super.visit(method, arg);
+        }
+
+        private void log(AnnotationExpr ann) {
+            if (ann.toString().startsWith("@RequestMapping")) {
+                log.warn("find @RequestMapping method:[{}]", ann);
+            }
         }
 
         @Override

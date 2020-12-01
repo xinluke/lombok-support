@@ -27,4 +27,11 @@ public class ReplaceRequestMappingJobTest {
         job.setShowDetail(true);
         job.handle(new ClassPathResource("SdkBlackListServiceClient.java").getFile());
     }
+
+    @Test
+    public void handle1() throws IOException {
+        job.setEnableMergeRequestUrl(true);
+        job.setShowDetail(true);
+        job.handle(new ClassPathResource("SdkBlackListServiceCtl.java").getFile());
+    }
 }
