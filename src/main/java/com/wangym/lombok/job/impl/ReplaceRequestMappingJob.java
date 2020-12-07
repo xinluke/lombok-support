@@ -3,6 +3,7 @@ package com.wangym.lombok.job.impl;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
@@ -157,7 +158,10 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
 
         private void log(AnnotationExpr ann) {
             if (ann.toString().startsWith("@RequestMapping")) {
-                log.warn("find @RequestMapping method:[{}]", ann);
+                PackageDeclaration pkg = ann.findCompilationUnit().get().getPackageDeclaration().get();
+                ClassOrInterfaceDeclaration parent = ann.findAncestor(ClassOrInterfaceDeclaration.class).get();
+                String qualified = pkg.getNameAsString() + "." + parent.getNameAsString();
+                log.warn("find @RequestMapping method:[{}],path:[{}]", ann, qualified);
             }
         }
 

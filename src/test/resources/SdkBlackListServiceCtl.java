@@ -1,3 +1,4 @@
+package com.wangym.lombok.job.impl;
 public interface SdkBlackListServiceClient {
 
 
