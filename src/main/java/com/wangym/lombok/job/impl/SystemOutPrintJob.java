@@ -12,7 +12,6 @@ import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -86,9 +85,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             boolean flag = set.contains(Modifier.staticModifier()) && set.contains(Modifier.publicModifier());
             if (flag && "main".equals(methodName)) {
                 BlockStmt body = n.getBody().get();
-                // 转义好判断
-                String bodyStr = StringEscapeUtils.escapeEcmaScript(body.toString());
-                if ("{\\r\\n}".equals(bodyStr)) {
+                if (body.getChildNodes().isEmpty()) {
                     log.info("delete empty method:{}", n);
                     // 删除掉main入口方法
                     return null;
