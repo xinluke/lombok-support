@@ -1,14 +1,18 @@
 package com.wangym.lombok.job.impl;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -25,6 +29,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
     @Override
     public void process(CompilationUnit compilationUnit) {
         SystemOutPrintVisitor visitor = new SystemOutPrintVisitor(compilationUnit);
+        compilationUnit.accept(new MainMehtodVisitor(), null);
         compilationUnit.accept(visitor, null);
     }
 
@@ -70,6 +75,26 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             expr.setScope(new NameExpr(str));
             expr.setName("info");
             return expr;
+        }
+    }
+
+    class MainMehtodVisitor extends ModifierVisitor<Void> {
+        @Override
+        public Visitable visit(MethodDeclaration n, Void arg) {
+            NodeList<Modifier> set = n.getModifiers();
+            String methodName = n.getNameAsString();
+            boolean flag = set.contains(Modifier.staticModifier()) && set.contains(Modifier.publicModifier());
+            if (flag && "main".equals(methodName)) {
+                BlockStmt body = n.getBody().get();
+                // 转义好判断
+                String bodyStr = StringEscapeUtils.escapeEcmaScript(body.toString());
+                if ("{\\r\\n}".equals(bodyStr)) {
+                    log.info("delete empty method:{}", n);
+                    // 删除掉main入口方法
+                    return null;
+                }
+            }
+            return super.visit(n, arg);
         }
     }
 
