@@ -15,6 +15,8 @@ public class DependencyVersionService {
 
     // 升级的版本
     private List<VerModelData> updateList = new ArrayList<>();
+    // 升级的版本
+    private List<VerModelData> parentList = new ArrayList<>();
     // 删除的版本
     private List<VerModelData> deleteList = new ArrayList<>();
     // 是否删除构建库配置

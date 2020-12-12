@@ -137,6 +137,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             });
             // 如果存在依赖的版本号，则更新版本号
             checkAndUpdateVersion();
+            checkAndUpdateParentVersion();
             if (dvService.isDeleteDistributionManagement() && model.getDistributionManagement() != null) {
                 model.setDistributionManagement(null);
                 // 说明pom.xml有变动
@@ -154,6 +155,33 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             for (VerModelData item : dvService.getUpdateList()) {
                 if (prop.containsKey(item.getName())) {
                     prop.setProperty(item.getName(), item.getVersion());
+                    // 说明pom.xml有变动
+                    hasModify = true;
+                }
+            }
+            // 按要求删除依赖
+            List<Dependency> dependencies = model.getDependencies();
+            for (Iterator<Dependency> iterator = dependencies.iterator(); iterator.hasNext();) {
+                Dependency dependency = iterator.next();
+                for (VerModelData item : dvService.getDeleteList()) {
+                    if (dependency.getArtifactId().equals(item.getName())) {
+                        iterator.remove();
+                        // 说明pom.xml有变动
+                        hasModify = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void checkAndUpdateParentVersion() {
+            Parent p = model.getParent();
+            if (p == null) {
+                return;
+            }
+            for (VerModelData item : dvService.getParentList()) {
+                if (p.getArtifactId().equals(item.getName())) {
+                    p.setVersion(item.getVersion());
                     // 说明pom.xml有变动
                     hasModify = true;
                 }

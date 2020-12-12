@@ -7,7 +7,14 @@ pom:
     updateList:
      - name: javaparser-symbol-solver-core.version
        version: 3.3.0
-       
+    deleteList:
+     - name: maven3-model-jdom-support
+       version: 1.6
+    parentList:
+     - name: javaparser-symbol-solver-core.version
+       version: 3.3.0
+     - name: spring-boot-starter-parent
+       version: 1.5.14.RELEASE
     deleteDistributionManagement: false
     deleteDependencyManagement: false
 logging:
