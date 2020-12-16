@@ -3,6 +3,7 @@ package com.wangym.lombok.job.impl;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
@@ -30,8 +31,44 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         SystemOutPrintVisitor visitor = new SystemOutPrintVisitor(compilationUnit);
         compilationUnit.accept(new MainMehtodVisitor(), null);
         compilationUnit.accept(visitor, null);
+        compilationUnit.accept(new FeignClientVisitor(), null);
     }
 
+    class FeignClientVisitor extends ModifierVisitor<Void> {
+
+        @Override
+        public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
+            // 找出@FeignClient
+            boolean flag = false;
+            NodeList<AnnotationExpr> anns = n.getAnnotations();
+            for (AnnotationExpr annotationExpr : anns) {
+                if (annotationExpr.toString().startsWith("@FeignClient")) {
+                    if (annotationExpr instanceof NormalAnnotationExpr) {
+                        NormalAnnotationExpr a = (NormalAnnotationExpr) annotationExpr;
+                        long count = a.getPairs().stream().filter(it -> it.getName().toString().equals("path")).count();
+                        if (count == 0) {
+                            flag = true;
+                            break;
+                        }
+                    } else {
+                        flag = true;
+                        break;
+                    }
+                }
+            }
+            if (flag && n.isInterface() && n.getExtendedTypes().isEmpty()) {
+                String name = getQualifiedName(n);
+                log.info("find target FeignClient:{},path:{}", n.getNameAsString(), name);
+            }
+            return super.visit(n, arg);
+        }
+
+        private String getQualifiedName(ClassOrInterfaceDeclaration n) {
+            PackageDeclaration pkg = n.findCompilationUnit().get().getPackageDeclaration().get();
+            String qualified = pkg.getNameAsString() + "." + n.getNameAsString();
+            return qualified;
+        }
+    }
     class SystemOutPrintVisitor extends ModifierVisitor<Void> {
 
         private CompilationUnit compilationUnit;
