@@ -45,7 +45,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
                 if (annotationExpr.toString().startsWith("@FeignClient")) {
                     if (annotationExpr instanceof NormalAnnotationExpr) {
                         NormalAnnotationExpr a = (NormalAnnotationExpr) annotationExpr;
-                        long count = a.getPairs().stream().filter(it -> it.getName().toString().equals("path")).count();
+                        long count = a.getPairs().stream().filter(it -> it.getName().toString().equals("url")).count();
                         if (count == 0) {
                             flag = true;
                             break;
