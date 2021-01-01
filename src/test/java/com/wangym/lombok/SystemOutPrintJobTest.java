@@ -24,8 +24,24 @@ public class SystemOutPrintJobTest {
     public void handle() throws IOException {
         job.handle(new ClassPathResource("SystemOutPrintExample.java").getFile());
     }
+
     @Test
     public void handle1() throws IOException {
         job.handle(new ClassPathResource("Application.java").getFile());
+    }
+
+    @Test
+    public void handle2() throws IOException {
+        job.handle(new ClassPathResource("JmlinkPortalClient.java").getFile());
+    }
+
+    @Test
+    public void handle3() throws IOException {
+        job.handle(new ClassPathResource("AnswerController.java").getFile());
+    }
+
+    @Test
+    public void handle4() throws IOException {
+        job.handle(new ClassPathResource("AppCacheFeignClient.java").getFile());
     }
 }

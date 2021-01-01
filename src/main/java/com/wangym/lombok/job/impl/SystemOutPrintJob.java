@@ -5,6 +5,7 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
@@ -12,9 +13,11 @@ import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Iterator;
 import java.util.Optional;
 
 /**
@@ -25,6 +28,7 @@ import java.util.Optional;
 @Slf4j
 public class SystemOutPrintJob extends AbstractJavaJob {
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
+    private Metadata meta2 = new Metadata("Autowired", "org.springframework.beans.factory.annotation.Autowired");
 
     @Override
     public void process(CompilationUnit compilationUnit) {
@@ -32,6 +36,11 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         compilationUnit.accept(new MainMehtodVisitor(), null);
         compilationUnit.accept(visitor, null);
         compilationUnit.accept(new FeignClientVisitor(), null);
+        AutowiredVisitor visit = new AutowiredVisitor();
+        compilationUnit.accept(visit, null);
+        if(visit.isFlag()) {
+            addImports(compilationUnit, meta2);
+        }
     }
 
     @Override
@@ -62,6 +71,33 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             }
         }, null);
     };
+
+    @Getter
+    class AutowiredVisitor extends ModifierVisitor<Void> {
+        // 是否存在任一个修改
+        private boolean flag;
+
+        @Override
+        public Visitable visit(FieldDeclaration n, Void arg) {
+            boolean record = false;
+            NodeList<AnnotationExpr> anns = n.getAnnotations();
+            // 将字段上面的@Resource换成@Autowired,统一管理
+            for (Iterator<AnnotationExpr> iterator = anns.iterator(); iterator.hasNext();) {
+                AnnotationExpr annotationExpr = iterator.next();
+                MarkerAnnotationExpr maexpr = (MarkerAnnotationExpr) annotationExpr;
+                if ("Resource".equals(maexpr.getNameAsString())) {
+                    iterator.remove();
+                    flag = true;
+                    record = true;
+                }
+            }
+            if (record) {
+                n.addAnnotation(new MarkerAnnotationExpr("Autowired"));
+                // anns.add();
+            }
+            return super.visit(n, arg);
+        }
+    }
 
     class FeignClientVisitor extends ModifierVisitor<Void> {
 
