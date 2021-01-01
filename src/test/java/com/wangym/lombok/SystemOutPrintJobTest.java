@@ -24,4 +24,8 @@ public class SystemOutPrintJobTest {
     public void handle() throws IOException {
         job.handle(new ClassPathResource("SystemOutPrintExample.java").getFile());
     }
+    @Test
+    public void handle1() throws IOException {
+        job.handle(new ClassPathResource("Application.java").getFile());
+    }
 }

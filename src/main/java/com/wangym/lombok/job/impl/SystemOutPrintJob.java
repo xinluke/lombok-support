@@ -34,6 +34,34 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         compilationUnit.accept(new FeignClientVisitor(), null);
     }
 
+    @Override
+    public void applyPreProcess(CompilationUnit compilationUnit, String path) {
+        compilationUnit.accept(new ModifierVisitor<Void>() {
+            @Override
+            public Visitable visit(MethodDeclaration n, Void arg) {
+                NodeList<Modifier> set = n.getModifiers();
+                String methodName = n.getNameAsString();
+                boolean flag = set.contains(Modifier.staticModifier()) && set.contains(Modifier.publicModifier());
+                if (flag && "main".equals(methodName)) {
+                    ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
+                    // 找出只集成spring boot的运行主类
+                    if (hasAnnotation(parent, "SpringBootApplication") && !hasAnnotation(parent, "EnableEurekaClient")) {
+                        log.info("find only spring boot project:{}", path);
+                    }
+                }
+                return super.visit(n, arg);
+            }
+
+            private boolean hasAnnotation(ClassOrInterfaceDeclaration parent, String annotationName) {
+                NodeList<AnnotationExpr> anns = parent.getAnnotations();
+                boolean exist = anns.stream()
+                        .filter(it -> annotationName.equals(it.getNameAsString()))
+                        .count() > 0;
+                return exist;
+            }
+        }, null);
+    };
+
     class FeignClientVisitor extends ModifierVisitor<Void> {
 
         @Override
