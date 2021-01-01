@@ -26,6 +26,7 @@ public abstract class AbstractJavaJob extends JavaJob {
         CompilationUnit clone2 = compilationUnit.clone();
         // 进行预操作
         process(clone);
+        applyPreProcess(compilationUnit.clone(), file.getPath());
         // 如果存在变更，则操作
         if (before != clone.hashCode()) {
             // 使用词法打印机设置对象，以便于保存原本的语法格式
@@ -40,7 +41,6 @@ public abstract class AbstractJavaJob extends JavaJob {
             }
 
             // 以utf-8编码的方式写入文件中
-            System.out.println(file.getPath());
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
             if (recordCode != clone.hashCode()) {
                 FileCopyUtils.copy(clone2.toString().getBytes("utf-8"), new File(file.getParent() + "/" + fileName));
@@ -50,7 +50,10 @@ public abstract class AbstractJavaJob extends JavaJob {
     }
 
     public abstract void process(CompilationUnit compilationUnit);
+    
+    public void applyPreProcess(CompilationUnit compilationUnit, String path) {
 
+    }
     public String afterProcess(CompilationUnit compilationUnit) {
         // 空实现
         return null;
