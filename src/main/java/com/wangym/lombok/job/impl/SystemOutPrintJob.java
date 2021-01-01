@@ -45,8 +45,9 @@ public class SystemOutPrintJob extends AbstractJavaJob {
                 if (flag && "main".equals(methodName)) {
                     ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                     // 找出只集成spring boot的运行主类
-                    if (hasAnnotation(parent, "SpringBootApplication") && !hasAnnotation(parent, "EnableEurekaClient")) {
-                        log.info("find only spring boot project:{}", path);
+                    if (hasAnnotation(parent, "SpringBootApplication") && !hasAnnotation(parent, "EnableEurekaClient")
+                            && !hasAnnotation(parent, "EnableDiscoveryClient")) {
+                        log.warn("find only spring boot project:{}", path);
                     }
                 }
                 return super.visit(n, arg);
