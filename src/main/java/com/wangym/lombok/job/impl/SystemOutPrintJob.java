@@ -35,7 +35,6 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         SystemOutPrintVisitor visitor = new SystemOutPrintVisitor(compilationUnit);
         compilationUnit.accept(new MainMehtodVisitor(), null);
         compilationUnit.accept(visitor, null);
-        compilationUnit.accept(new FeignClientVisitor(), null);
         AutowiredVisitor visit = new AutowiredVisitor();
         compilationUnit.accept(visit, null);
         if(visit.isFlag()) {
@@ -45,6 +44,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
 
     @Override
     public void applyPreProcess(CompilationUnit compilationUnit, String path) {
+        compilationUnit.accept(new FeignClientVisitor(path), null);
         compilationUnit.accept(new ModifierVisitor<Void>() {
             @Override
             public Visitable visit(MethodDeclaration n, Void arg) {
@@ -101,6 +101,12 @@ public class SystemOutPrintJob extends AbstractJavaJob {
 
     class FeignClientVisitor extends ModifierVisitor<Void> {
 
+        private String path;
+        public FeignClientVisitor(String path) {
+            super();
+            this.path = path;
+        }
+
         @Override
         public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
             // 找出@FeignClient
@@ -122,8 +128,8 @@ public class SystemOutPrintJob extends AbstractJavaJob {
                 }
             }
             if (flag && n.isInterface() && n.getExtendedTypes().isEmpty()) {
-                String name = getQualifiedName(n);
-                log.info("find target FeignClient:{},path:{}", n.getNameAsString(), name);
+                // String name = getQualifiedName(n);
+                log.info("find target FeignClient:{},path:{}", n.getNameAsString(), path);
             }
             return super.visit(n, arg);
         }
