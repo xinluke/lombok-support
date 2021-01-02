@@ -42,7 +42,7 @@ public abstract class AbstractJavaJob extends JavaJob {
 
             // 以utf-8编码的方式写入文件中
             FileCopyUtils.copy(newBody.toString().getBytes("utf-8"), file);
-            if (recordCode != clone.hashCode()) {
+            if (recordCode != clone2.hashCode()) {
                 String pathname = file.getParent() + "/" + fileName;
                 log.debug("find change,file:{},content:{}", pathname, clone2);
                 FileCopyUtils.copy(clone2.toString().getBytes("utf-8"), new File(pathname));
