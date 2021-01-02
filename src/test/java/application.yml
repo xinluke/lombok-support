@@ -2,6 +2,9 @@ loggerSearchAll: true
 maven.trim.enable: true
 junit.resolver.enable: true
 move.resolver.enable: true
+logger:
+  ##删除logger上的Json包装
+  deleteJsonWraped: true
 pom:
   version:
     updateList:

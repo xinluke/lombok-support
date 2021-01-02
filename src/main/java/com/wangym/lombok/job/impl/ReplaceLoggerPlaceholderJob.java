@@ -9,12 +9,11 @@ import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author wangym
@@ -23,6 +22,9 @@ import java.util.List;
 @Component
 @Slf4j
 public class ReplaceLoggerPlaceholderJob extends AbstractJavaJob {
+
+    @Value("${logger.deleteJsonWraped:false}")
+    private boolean deleteJsonWraped;
 
     @Override
     public void process(CompilationUnit compilationUnit) {
@@ -75,8 +77,32 @@ public class ReplaceLoggerPlaceholderJob extends AbstractJavaJob {
                 }else if(expr instanceof MethodCallExpr){
                     doHandle1(n);
                 }
+                // 去除参数中的"JSON.toJSONString(list)"
+                if (deleteJsonWraped && args.size() > 1) {
+                    for (ListIterator<Expression> iterator = args.listIterator(); iterator.hasNext();) {
+                        Expression itExpr = iterator.next();
+                        if (itExpr instanceof MethodCallExpr) {
+                            MethodCallExpr mc = (MethodCallExpr) itExpr;
+                            NodeList<Expression> res = getExtract(mc);
+                            if (res != null) {
+                                iterator.remove();
+                            }
+                            // 把mc中的列表加回来
+                            res.forEach(iterator::add);
+                        }
+                    }
+                }
             }
             return super.visit(n, arg);
+        }
+
+        private NodeList<Expression> getExtract(MethodCallExpr mc) {
+            if (Optional.of(new NameExpr("JSON")).equals(mc.getScope())
+                    && new SimpleName("toJSONString").equals(mc.getName())) {
+                // 从调用的表达式中提取出参数列表
+                return mc.getArguments();
+            }
+            return null;
         }
 
         private void doHandle1(MethodCallExpr po) {
