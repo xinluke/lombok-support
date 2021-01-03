@@ -3,7 +3,6 @@ package com.wangym.lombok.job.impl;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
@@ -64,6 +63,43 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         // 如果存在变更，则操作
         if (before != compilationUnit.hashCode()) {
             deleteImports(compilationUnit);
+        }
+    }
+
+    @Override
+    public void applyPreProcess(CompilationUnit compilationUnit, String path) {
+        compilationUnit.accept(new RequestMappingMonitorVisitor(path), null);
+    }
+
+    class RequestMappingMonitorVisitor extends AbstractRequestMappingVisitor {
+        private String path;
+
+        public RequestMappingMonitorVisitor(String path) {
+            super();
+            this.path = path;
+        }
+
+        @Override
+        public Visitable visit(MethodDeclaration method, Void arg) {
+            // 找出方法中的@RequestMapping，并打印出来,需要整改。推荐做法：声明接口写明http method
+            NormalAnnotationExpr expr = getTargetAnn(method, annNames);
+            if (expr != null) {
+                log(expr);
+            }
+            SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(method, annNames);
+            if (singleExpr != null) {
+                log(singleExpr);
+            }
+            return super.visit(method, arg);
+        }
+
+        private void log(AnnotationExpr ann) {
+            if (ann.toString().startsWith("@RequestMapping")) {
+//                PackageDeclaration pkg = ann.findCompilationUnit().get().getPackageDeclaration().get();
+//                ClassOrInterfaceDeclaration parent = ann.findAncestor(ClassOrInterfaceDeclaration.class).get();
+//                String qualified = pkg.getNameAsString() + "." + parent.getNameAsString();
+                log.warn("find @RequestMapping method:[{}],path:[{}]", ann, path);
+            }
         }
     }
 
@@ -145,24 +181,13 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         public Visitable visit(MethodDeclaration method, Void arg) {
             NormalAnnotationExpr expr = getTargetAnn(method, annNames);
             if (expr != null) {
-                log(expr);
                 doHandle(expr);
             }
             SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(method, annNames);
             if (singleExpr != null) {
-                log(singleExpr);
                 doHandle(singleExpr);
             }
             return super.visit(method, arg);
-        }
-
-        private void log(AnnotationExpr ann) {
-            if (ann.toString().startsWith("@RequestMapping")) {
-                PackageDeclaration pkg = ann.findCompilationUnit().get().getPackageDeclaration().get();
-                ClassOrInterfaceDeclaration parent = ann.findAncestor(ClassOrInterfaceDeclaration.class).get();
-                String qualified = pkg.getNameAsString() + "." + parent.getNameAsString();
-                log.warn("find @RequestMapping method:[{}],path:[{}]", ann, qualified);
-            }
         }
 
         @Override
