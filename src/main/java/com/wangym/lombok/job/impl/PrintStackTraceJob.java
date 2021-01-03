@@ -58,7 +58,7 @@ public class PrintStackTraceJob extends AbstractJavaJob {
             String str = "log";
             expr.setScope(new NameExpr(str));
             expr.setName("error");
-            expr.getArguments().add(new StringLiteralExpr("unexpected exception,please check"));
+            expr.getArguments().add(new StringLiteralExpr(Constant.DEFAULT_ERROR_MSG));
             expr.getArguments().add(new NameExpr(var));
             return expr;
         }

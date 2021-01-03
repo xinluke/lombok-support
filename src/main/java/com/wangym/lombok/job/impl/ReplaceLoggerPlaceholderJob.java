@@ -53,6 +53,8 @@ public class ReplaceLoggerPlaceholderJob extends AbstractJavaJob {
     }
 
     class LoggerPlaceholderVisitor extends ModifierVisitor<Void> {
+        private SimpleName ErrorName = new SimpleName("error");
+        private StringLiteralExpr emptyContentExpr = new StringLiteralExpr("");
 
         @Override
         public Visitable visit(MethodCallExpr n, Void arg) {
@@ -91,6 +93,11 @@ public class ReplaceLoggerPlaceholderJob extends AbstractJavaJob {
                             res.forEach(iterator::add);
                         }
                     }
+                }
+                // 如果出现log.error("",e)这样类似的语句，第一个参数添加打印内容
+                if (emptyContentExpr.equals(expr) && ErrorName.equals(n.getName())) {
+                    // 替换第一个参数
+                    args.set(0, new StringLiteralExpr(Constant.DEFAULT_ERROR_MSG));
                 }
             }
             return super.visit(n, arg);

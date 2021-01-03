@@ -20,5 +20,8 @@ public class LoggerPlaceholderExample {
         log.info("hello" + " " + "world");
 
     }
+    public void case4(Exception e) {
+        log.error("", e);
+    }
 
 }
