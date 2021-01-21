@@ -34,4 +34,11 @@ public class ReplaceRequestMappingJobTest {
         job.setShowDetail(true);
         job.handle(new ClassPathResource("SdkBlackListServiceCtl.java").getFile());
     }
+
+    @Test
+    public void handle2() throws IOException {
+        job.setEnableMergeRequestUrl(true);
+        job.setShowDetail(true);
+        job.handle(new ClassPathResource("BrandActReviewController.java").getFile());
+    }
 }

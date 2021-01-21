@@ -23,6 +23,15 @@ public class AbstractRequestMappingVisitor extends ModifierVisitor<Void> {
         }
         return null;
     }
+    protected boolean existTargetAnn(MethodDeclaration it, List<String> annNames) {
+        NodeList<AnnotationExpr> anns = it.getAnnotations();
+        for (AnnotationExpr item : anns) {
+            if (annNames.contains(item.getNameAsString())) {
+                return true;
+            }
+        }
+        return false;
+    }
     protected SingleMemberAnnotationExpr getSingleTargetAnn(MethodDeclaration it, List<String> annNames) {
         NodeList<AnnotationExpr> anns = it.getAnnotations();
         for (AnnotationExpr item : anns) {
@@ -33,6 +42,15 @@ public class AbstractRequestMappingVisitor extends ModifierVisitor<Void> {
             }
         }
         return null;
+    }
+    protected boolean exist(ClassOrInterfaceDeclaration it, AnnotationExpr ann) {
+        NodeList<AnnotationExpr> anns = it.getAnnotations();
+        for (AnnotationExpr item : anns) {
+            if(item.equals(ann)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected NormalAnnotationExpr getTargetAnn(ClassOrInterfaceDeclaration it, List<String> annNames) {

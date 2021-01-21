@@ -132,12 +132,24 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
     }
 
     class ApiOperationVisitor extends AbstractRequestMappingVisitor {
+        private MarkerAnnotationExpr restController =new MarkerAnnotationExpr("RestController");
+        @Override
+        public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
+            // 确定是否是@RestController
+            if (exist(n, restController)) {
+                SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(n, Arrays.asList("Api"));
+                if (singleExpr == null) {
+                    // 在第一个位置进行插入
+                    n.getAnnotations().addFirst(geneApiAnn(""));
+                }
+            }
+            return super.visit(n, arg);
+        }
+
         @Override
         public Visitable visit(MethodDeclaration method, Void arg) {
             // 确定是否是RequestMappingEndpoint
-            if (getTargetAnn(method, annNames) == null) {
-                return super.visit(method, arg);
-            }
+            if (existTargetAnn(method, annNames)) {
             // 如果方法上面没有自定义的注解，则准备添加一个
             SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(method, Arrays.asList("ApiOperation"));
             if (singleExpr != null) {
@@ -146,12 +158,14 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                 StringLiteralExpr expr = (StringLiteralExpr) singleExpr.getMemberValue();
                 String val = expr.asString();
                 // 在第一个位置进行插入
-                method.getAnnotations().addLast(geneApiOperationAnn(val));
+                method.getAnnotations().addFirst(geneApiOperationAnn(val));
+            } else {
+                NormalAnnotationExpr methodExpr = getTargetAnn(method, Arrays.asList("ApiOperation"));
+                if (methodExpr == null) {
+                    // 在第一个位置进行插入
+                    method.getAnnotations().addFirst(geneApiOperationAnn(""));
+                }
             }
-            NormalAnnotationExpr methodExpr = getTargetAnn(method, Arrays.asList("ApiOperation"));
-            if (methodExpr == null) {
-                // 在第一个位置进行插入
-                method.getAnnotations().addFirst(geneApiOperationAnn(""));
             }
             return super.visit(method, arg);
         }
@@ -160,6 +174,12 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             // 构造一个标准的注解格式
             MemberValuePair p = new MemberValuePair("value", new StringLiteralExpr(val));
             NormalAnnotationExpr ann = new NormalAnnotationExpr(new Name("ApiOperation"), new NodeList<>(p));
+            return ann;
+        }
+        private NormalAnnotationExpr geneApiAnn(String val) {
+            // 构造一个标准的注解格式
+            MemberValuePair p = new MemberValuePair("description ", new StringLiteralExpr(val));
+            NormalAnnotationExpr ann = new NormalAnnotationExpr(new Name("Api"), new NodeList<>(p));
             return ann;
         }
     }
