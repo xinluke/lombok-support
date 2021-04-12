@@ -46,7 +46,7 @@ public class AbstractRequestMappingVisitor extends ModifierVisitor<Void> {
     protected boolean exist(ClassOrInterfaceDeclaration it, AnnotationExpr ann) {
         NodeList<AnnotationExpr> anns = it.getAnnotations();
         for (AnnotationExpr item : anns) {
-            if(item.equals(ann)) {
+            if (item.equals(ann) || item.getNameAsString().equals(ann.getNameAsString())) {
                 return true;
             }
         }

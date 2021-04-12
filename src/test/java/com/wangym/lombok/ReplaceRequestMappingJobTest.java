@@ -41,4 +41,11 @@ public class ReplaceRequestMappingJobTest {
         job.setShowDetail(true);
         job.handle(new ClassPathResource("BrandActReviewController.java").getFile());
     }
+
+    @Test
+    public void handle3() throws IOException {
+        job.setEnableMergeRequestUrl(true);
+        job.setShowDetail(true);
+        job.handle(new ClassPathResource("RequestMappingExample.java").getFile());
+    }
 }

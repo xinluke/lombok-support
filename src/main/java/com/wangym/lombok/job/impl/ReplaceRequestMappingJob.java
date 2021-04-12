@@ -133,14 +133,18 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
 
     class ApiOperationVisitor extends AbstractRequestMappingVisitor {
         private MarkerAnnotationExpr restController =new MarkerAnnotationExpr("RestController");
+        private MarkerAnnotationExpr api = new MarkerAnnotationExpr("Api");
+
         @Override
         public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
             // 确定是否是@RestController
             if (exist(n, restController)) {
-                SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(n, Arrays.asList("Api"));
-                if (singleExpr == null) {
+                //如果不存在@Api，则添加
+                if (!exist(n, api)) {
                     // 在第一个位置进行插入
                     n.getAnnotations().addFirst(geneApiAnn(""));
+                    Metadata meta = new Metadata("Api", "io.swagger.annotations.Api");
+                    addImports(n.findCompilationUnit().get(), meta);
                 }
             }
             return super.visit(n, arg);
@@ -158,14 +162,16 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                 StringLiteralExpr expr = (StringLiteralExpr) singleExpr.getMemberValue();
                 String val = expr.asString();
                 // 在第一个位置进行插入
-                method.getAnnotations().addFirst(geneApiOperationAnn(val));
+                method.getAnnotations().add(geneApiOperationAnn(val));
             } else {
                 NormalAnnotationExpr methodExpr = getTargetAnn(method, Arrays.asList("ApiOperation"));
                 if (methodExpr == null) {
                     // 在第一个位置进行插入
-                    method.getAnnotations().addFirst(geneApiOperationAnn(""));
+                    method.getAnnotations().add(geneApiOperationAnn(""));
                 }
             }
+            Metadata meta = new Metadata("ApiOperation", "io.swagger.annotations.ApiOperation");
+            addImports(method.findCompilationUnit().get(), meta);
             }
             return super.visit(method, arg);
         }
@@ -178,7 +184,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         }
         private NormalAnnotationExpr geneApiAnn(String val) {
             // 构造一个标准的注解格式
-            MemberValuePair p = new MemberValuePair("description ", new StringLiteralExpr(val));
+            MemberValuePair p = new MemberValuePair("description", new StringLiteralExpr(val));
             NormalAnnotationExpr ann = new NormalAnnotationExpr(new Name("Api"), new NodeList<>(p));
             return ann;
         }
