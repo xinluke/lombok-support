@@ -6,9 +6,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
@@ -56,11 +54,22 @@ public class ReplaceLoggerJob extends AbstractJavaJob {
         // 可能匹配Log变量的类型名称
         private List<String> asList = Arrays.asList("Logger", "Log");
         private boolean fullSearch;
+        private NullLiteralExpr expr = new NullLiteralExpr();
 
         public LoggerVisitor(boolean fullSearch) {
             super();
             // 是否是全部类型的Log变量都进行查找，不管是否是private
             this.fullSearch = fullSearch;
+        }
+        @Override
+        public Visitable visit(BinaryExpr n, Void arg) {
+            if (expr.equals(n.getLeft())) {
+                Expression left = n.getLeft();
+                Expression right = n.getRight();
+                // 左右互换，需要重建BinaryExpr
+                return new BinaryExpr(right, left, n.getOperator());
+            }
+            return super.visit(n, arg);
         }
 
         @Override
