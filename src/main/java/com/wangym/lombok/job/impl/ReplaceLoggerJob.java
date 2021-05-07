@@ -63,6 +63,7 @@ public class ReplaceLoggerJob extends AbstractJavaJob {
         }
         @Override
         public Visitable visit(BinaryExpr n, Void arg) {
+            // 查找null放在左边的写法，并换到右边
             if (expr.equals(n.getLeft())) {
                 Expression left = n.getLeft();
                 Expression right = n.getRight();

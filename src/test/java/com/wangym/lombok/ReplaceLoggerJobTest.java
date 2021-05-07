@@ -29,6 +29,11 @@ public class ReplaceLoggerJobTest {
     }
 
     @Test
+    public void handle1() throws IOException {
+        job.handle(new ClassPathResource("PushResponseWrapper.java").getFile());
+    }
+
+    @Test
     public void contextLoads() throws IOException {
         File file = new File("c:/AppGroupController.java");
         byte[] bytes = FileCopyUtils.copyToByteArray(file);

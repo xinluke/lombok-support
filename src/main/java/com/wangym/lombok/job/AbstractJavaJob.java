@@ -28,7 +28,7 @@ public abstract class AbstractJavaJob extends JavaJob {
         process(clone);
         applyPreProcess(compilationUnit.clone(), file.getPath());
         // 如果存在变更，则操作
-        if (before != clone.hashCode()) {
+        if (!compilationUnit.equals(clone)) {
             // 使用词法打印机设置对象，以便于保存原本的语法格式
             LexicalPreservingPrinter.setup(compilationUnit);
             // 操作真正的对象
