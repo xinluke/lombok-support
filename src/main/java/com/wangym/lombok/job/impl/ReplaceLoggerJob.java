@@ -72,6 +72,32 @@ public class ReplaceLoggerJob extends AbstractJavaJob {
             }
             return super.visit(n, arg);
         }
+        @Override
+        public Visitable visit(LongLiteralExpr n, Void arg) {
+            // 因为小写的单位很容易看错,8l-》8L
+            String val = n.getValue();
+            String upperCase = val.toUpperCase();
+            if (!upperCase.endsWith("L")) {
+                upperCase += "L";
+            }
+            if (!val.equals(upperCase)) {
+                n.setValue(upperCase);
+            }
+            return super.visit(n, arg);
+        }
+        @Override
+        public Visitable visit(DoubleLiteralExpr n, Void arg) {
+            //统一为大写D,8D
+            String val = n.getValue();
+            String upperCase = val.toUpperCase();
+            if (!upperCase.endsWith("D")) {
+                upperCase += "D";
+            }
+            if (!val.equals(upperCase)) {
+                n.setValue(upperCase);
+            }
+            return super.visit(n, arg);
+        }
 
         @Override
         public Visitable visit(FieldDeclaration field, Void arg) {
