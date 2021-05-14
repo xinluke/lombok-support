@@ -90,7 +90,9 @@ public class ReplaceLoggerJob extends AbstractJavaJob {
             //统一为大写D,8D
             String val = n.getValue();
             String upperCase = val.toUpperCase();
-            if (!upperCase.endsWith("D")) {
+            // 如果是float类型的，末尾都是会带F的
+            // 如果没有尾缀的情况下，默认补'D'
+            if (!upperCase.endsWith("D") && !upperCase.endsWith("F")) {
                 upperCase += "D";
             }
             if (!val.equals(upperCase)) {

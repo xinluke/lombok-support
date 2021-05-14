@@ -12,6 +12,7 @@ public class LoggerExample {
         double b1 = 6.1;
         long c = 7;
         long c2 = 8l;
+        float scaleSize = 1.8f;
         if (null != new Object()) {
             logger.info("hello world");
         }
