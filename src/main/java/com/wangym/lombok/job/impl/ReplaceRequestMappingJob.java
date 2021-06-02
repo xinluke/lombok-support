@@ -191,6 +191,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
     }
 
     class RequestMappingConstructorVisitor extends AbstractRequestMappingVisitor {
+        private Metadata mediaTypeMetadata = new Metadata("MediaType", "org.springframework.http.MediaType");
         private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
                 "DeleteMapping", "PatchMapping");
         // 父级路径
@@ -334,6 +335,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                 // 现阶段使用json格式的数据应该是满足绝大部分的用户的需求
                 FieldAccessExpr value = new FieldAccessExpr(new NameExpr("MediaType"), "APPLICATION_JSON_VALUE");
                 pairs.add(new MemberValuePair("produces", value));
+                addImports(compilationUnit, mediaTypeMetadata);
             }
             // 删除设置的method参数
             if (temp != null) {
