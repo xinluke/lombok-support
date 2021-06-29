@@ -23,5 +23,10 @@ public class Application {
         SpringApplication app = new SpringApplication(Application.class);
         app.run(args);
     }
+
+    public synchronized static void test1(String[] args) {
+        SpringApplication app = new SpringApplication(Application.class);
+        app.run(args);
+    }
 }
 

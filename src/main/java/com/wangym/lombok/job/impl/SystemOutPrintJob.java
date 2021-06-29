@@ -15,6 +15,7 @@ import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
@@ -29,9 +30,12 @@ import java.util.Optional;
 public class SystemOutPrintJob extends AbstractJavaJob {
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
     private Metadata meta2 = new Metadata("Autowired", "org.springframework.beans.factory.annotation.Autowired");
-
+    private Metadata meta3 = new Metadata("Synchronized", "lombok.Synchronized");
+    @Value("${synchronizedAnnotationSupport:false}")
+    private boolean synchronizedAnnotationSupport;
     @Override
     public void process(CompilationUnit compilationUnit) {
+        compilationUnit.accept(new SynchronizedMehtodVisitor(compilationUnit), null);
         SystemOutPrintVisitor visitor = new SystemOutPrintVisitor(compilationUnit);
         compilationUnit.accept(new MainMehtodVisitor(), null);
         compilationUnit.accept(visitor, null);
@@ -185,6 +189,26 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         }
     }
 
+    class SynchronizedMehtodVisitor extends ModifierVisitor<Void> {
+        private CompilationUnit compilationUnit;
+        
+        public SynchronizedMehtodVisitor(CompilationUnit compilationUnit) {
+            super();
+            this.compilationUnit = compilationUnit;
+        }
+
+        @Override
+        public Visitable visit(MethodDeclaration n, Void arg) {
+            //如果存在Synchronized的方法块，需要转成lombok的注解
+            if (synchronizedAnnotationSupport && n.isSynchronized()) {
+                NodeList<Modifier> mo = n.getModifiers();
+                mo.remove(Modifier.synchronizedModifier());
+                n.addAnnotation(new MarkerAnnotationExpr(meta3.getAnnName()));
+                addImports(compilationUnit, meta3);
+            }
+            return super.visit(n, arg);
+        }
+    }
     class MainMehtodVisitor extends ModifierVisitor<Void> {
         @Override
         public Visitable visit(MethodDeclaration n, Void arg) {
