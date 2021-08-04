@@ -34,6 +34,8 @@ public class SystemOutPrintJob extends AbstractJavaJob {
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
     private Metadata meta2 = new Metadata("Autowired", "org.springframework.beans.factory.annotation.Autowired");
     private Metadata meta3 = new Metadata("Synchronized", "lombok.Synchronized");
+    private Metadata meta4 = new Metadata("HashMap", "java.util.HashMap");
+    private Metadata meta5 = new Metadata("ArrayList", "java.util.ArrayList");
     @Value("${synchronizedAnnotationSupport:false}")
     private boolean synchronizedAnnotationSupport;
     @Override
@@ -41,7 +43,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         compilationUnit.accept(new SynchronizedMehtodVisitor(compilationUnit), null);
         SystemOutPrintVisitor visitor = new SystemOutPrintVisitor(compilationUnit);
         compilationUnit.accept(new MainMehtodVisitor(), null);
-        compilationUnit.accept(new GuavaVisitor(), null);
+        compilationUnit.accept(new GuavaVisitor(compilationUnit), null);
         compilationUnit.accept(visitor, null);
         AutowiredVisitor visit = new AutowiredVisitor();
         compilationUnit.accept(visit, null);
@@ -150,24 +152,46 @@ public class SystemOutPrintJob extends AbstractJavaJob {
     }
 
     class GuavaVisitor extends ModifierVisitor<Void> {
-        private Map<MethodCallExpr, ObjectCreationExpr> map = new HashMap<>();
+        private Map<MethodCallExpr, ExprWrapper> map = new HashMap<>();
+        private CompilationUnit compilationUnit;
 
-        GuavaVisitor() {
+        public GuavaVisitor(CompilationUnit compilationUnit) {
+            super();
+            this.compilationUnit = compilationUnit;
             // 替换guava提供的泛型推导创建集合的方式，1.8中java本身已经可以直接推导
             map.put(new MethodCallExpr(new NameExpr("Lists"), "newArrayList"),
-                    new ObjectCreationExpr(null, new ClassOrInterfaceType("ArrayList<>"), new NodeList<>()));
+                    new ExprWrapper(
+                            new ObjectCreationExpr(null, new ClassOrInterfaceType("ArrayList<>"), new NodeList<>()),
+                            meta4));
             map.put(new MethodCallExpr(new NameExpr("Maps"), "newHashMap"),
-                    new ObjectCreationExpr(null, new ClassOrInterfaceType("HashMap<>"), new NodeList<>()));
+                    new ExprWrapper(
+                            new ObjectCreationExpr(null, new ClassOrInterfaceType("HashMap<>"), new NodeList<>()),
+                            meta5));
         }
 
         @Override
         public Visitable visit(MethodCallExpr n, Void arg) {
-            for (Map.Entry<MethodCallExpr, ObjectCreationExpr> entry : map.entrySet()) {
+            for (Map.Entry<MethodCallExpr, ExprWrapper> entry : map.entrySet()) {
                 if (n.equals(entry.getKey())) {
-                    return entry.getValue();
+                    ExprWrapper value = entry.getValue();
+                    addImports(compilationUnit, value.getMeta());
+                    return value.getExpr();
                 }
             }
             return super.visit(n, arg);
+        }
+
+        @Getter
+        class ExprWrapper {
+            private ObjectCreationExpr expr;
+            private Metadata meta;
+
+            public ExprWrapper(ObjectCreationExpr expr, Metadata meta) {
+                super();
+                this.expr = expr;
+                this.meta = meta;
+            }
+
         }
     }
 
