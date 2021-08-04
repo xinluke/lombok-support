@@ -1,5 +1,7 @@
 package com.wangym.lombok;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -20,6 +22,10 @@ import org.springframework.context.annotation.ImportResource;
 public class Application {
 
     public static void main(String[] args) {
+        List<String> list1=new ArrayList<>();
+        List<String> list=Lists.newArrayList();
+        List<String> list2=Lists.newArrayList("abc","cdf");
+        Map<String,String> map =Maps.newHashMap();
         SpringApplication app = new SpringApplication(Application.class);
         app.run(args);
     }

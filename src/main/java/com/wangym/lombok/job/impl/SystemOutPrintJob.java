@@ -9,6 +9,7 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
@@ -18,7 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -38,6 +41,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         compilationUnit.accept(new SynchronizedMehtodVisitor(compilationUnit), null);
         SystemOutPrintVisitor visitor = new SystemOutPrintVisitor(compilationUnit);
         compilationUnit.accept(new MainMehtodVisitor(), null);
+        compilationUnit.accept(new GuavaVisitor(), null);
         compilationUnit.accept(visitor, null);
         AutowiredVisitor visit = new AutowiredVisitor();
         compilationUnit.accept(visit, null);
@@ -144,6 +148,29 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             return qualified;
         }
     }
+
+    class GuavaVisitor extends ModifierVisitor<Void> {
+        private Map<MethodCallExpr, ObjectCreationExpr> map = new HashMap<>();
+
+        GuavaVisitor() {
+            // 替换guava提供的泛型推导创建集合的方式，1.8中java本身已经可以直接推导
+            map.put(new MethodCallExpr(new NameExpr("Lists"), "newArrayList"),
+                    new ObjectCreationExpr(null, new ClassOrInterfaceType("ArrayList<>"), new NodeList<>()));
+            map.put(new MethodCallExpr(new NameExpr("Maps"), "newHashMap"),
+                    new ObjectCreationExpr(null, new ClassOrInterfaceType("HashMap<>"), new NodeList<>()));
+        }
+
+        @Override
+        public Visitable visit(MethodCallExpr n, Void arg) {
+            for (Map.Entry<MethodCallExpr, ObjectCreationExpr> entry : map.entrySet()) {
+                if (n.equals(entry.getKey())) {
+                    return entry.getValue();
+                }
+            }
+            return super.visit(n, arg);
+        }
+    }
+
     class SystemOutPrintVisitor extends ModifierVisitor<Void> {
 
         private CompilationUnit compilationUnit;
