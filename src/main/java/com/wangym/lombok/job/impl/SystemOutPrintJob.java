@@ -34,8 +34,8 @@ public class SystemOutPrintJob extends AbstractJavaJob {
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
     private Metadata meta2 = new Metadata("Autowired", "org.springframework.beans.factory.annotation.Autowired");
     private Metadata meta3 = new Metadata("Synchronized", "lombok.Synchronized");
-    private Metadata meta4 = new Metadata("HashMap", "java.util.HashMap");
-    private Metadata meta5 = new Metadata("ArrayList", "java.util.ArrayList");
+    private Metadata metaHashMap = new Metadata("HashMap", "java.util.HashMap");
+    private Metadata metaArrayList = new Metadata("ArrayList", "java.util.ArrayList");
     @Value("${synchronizedAnnotationSupport:false}")
     private boolean synchronizedAnnotationSupport;
     @Override
@@ -162,11 +162,11 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             map.put(new MethodCallExpr(new NameExpr("Lists"), "newArrayList"),
                     new ExprWrapper(
                             new ObjectCreationExpr(null, new ClassOrInterfaceType("ArrayList<>"), new NodeList<>()),
-                            meta4));
+                            metaArrayList));
             map.put(new MethodCallExpr(new NameExpr("Maps"), "newHashMap"),
                     new ExprWrapper(
                             new ObjectCreationExpr(null, new ClassOrInterfaceType("HashMap<>"), new NodeList<>()),
-                            meta5));
+                            metaHashMap));
         }
 
         @Override
