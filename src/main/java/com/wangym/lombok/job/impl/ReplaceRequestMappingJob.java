@@ -11,6 +11,7 @@ import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -375,6 +376,10 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         private StringLiteralExpr fixClassPath(StringLiteralExpr path) {
             // 期望类上面的路径调整为/abc/def这样的样式
             String newPath = path.getValue();
+            // 如果当前路径没有绑定的location，则不执行
+            if (StringUtils.isBlank(newPath)) {
+                return path;
+            }
             if (!newPath.startsWith("/")) {
                 newPath = "/" + newPath;
             }
@@ -389,6 +394,10 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             // 期望方法上面的路径调整为/abc/def这样的样式
             StringLiteralExpr v = value;
             String path = v.getValue();
+            // 如果当前路径没有绑定的location，则不执行
+            if(StringUtils.isBlank(path)) {
+                return value;
+            }
             String newPath = path;
             if (!newPath.startsWith("/")) {
                 newPath = "/" + newPath;
