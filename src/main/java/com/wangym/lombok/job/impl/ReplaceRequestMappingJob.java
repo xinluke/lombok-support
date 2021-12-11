@@ -229,11 +229,16 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             NormalAnnotationExpr expr = getTargetAnn(n, annNames);
             if (expr != null) {
                 NodeList<MemberValuePair> pairs = expr.getPairs();
+                changeKeyName(pairs);
                 for (MemberValuePair p : pairs) {
                     String nameAsString = p.getNameAsString();
                     if ("value".equals(nameAsString)) {
                         // record
                         StringLiteralExpr v = (StringLiteralExpr) p.getValue();
+                        StringLiteralExpr newPath = fixClassPath(v);
+                        if(!v.equals(newPath)) {
+                            p.setValue(newPath);
+                        }
                         recordPath(v.getValue());
                     }
                 }
@@ -247,6 +252,10 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             SingleMemberAnnotationExpr singleExpr = getSingleTargetAnn(n, annNames);
             if (singleExpr != null) {
                 StringLiteralExpr expr = (StringLiteralExpr) singleExpr.getMemberValue();
+                StringLiteralExpr newPath = fixClassPath(expr);
+                if(!expr.equals(newPath)) {
+                    singleExpr.setMemberValue(newPath);
+                }
                 // 这里面的值必然是url
                 String val = expr.asString();
                 // record
@@ -277,8 +286,21 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                 expr.setMemberValue(new StringLiteralExpr(path + v.getValue()));
             }
         }
+
+        private void changeKeyName(NodeList<MemberValuePair> pairs) {
+            // 使用value的方式方便使用注解读取里面的值，第二个好处是加字段参数，或者简写忽略value都很方便
+            // 准备替换Mapping*注解的path/value字段
+            for (MemberValuePair p : pairs) {
+                String nameAsString = p.getNameAsString();
+                if ("path".equals(nameAsString)) {
+                    // 使用path的参数全部切换成value的方式，统一
+                    p.setName(new SimpleName("value"));
+                }
+            }
+        }
         private void doHandle(NormalAnnotationExpr expr) {
             NodeList<MemberValuePair> pairs = expr.getPairs();
+            changeKeyName(pairs);
             MemberValuePair temp = null;
             boolean producesExist = false;
             for (MemberValuePair p : pairs) {
@@ -305,9 +327,6 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                     // 更新注解名
                     expr.setName(newAnnoName);
                     temp = p;
-                } else if ("path".equals(nameAsString)) {
-                    // 使用path的参数全部切换成value的方式，统一
-                    p.setName(new SimpleName("value"));
                 } else if ("value".equals(nameAsString)) {
                     Expression value = p.getValue();
                     // 判断是否是数组类型的注解值
@@ -319,9 +338,15 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                             p.setValue(annParamValuesList.get(0));
                         }
                     } else if (value instanceof StringLiteralExpr) {
+                        StringLiteralExpr v = (StringLiteralExpr) value;
+                        StringLiteralExpr fixSuffixPath = fixMethodSuffixPath(v);
+                        // 修正方法的路径
+                        if (!value.equals(fixSuffixPath)) {
+                            p.setValue(fixSuffixPath);
+                        }
                         if (hasPath()) {
-                            StringLiteralExpr v = (StringLiteralExpr) value;
-                            p.setValue(new StringLiteralExpr(path + v.getValue()));
+                            String methodPath = v.getValue();
+                            p.setValue(new StringLiteralExpr(path + methodPath));
                         }
                     }
                 } else if ("produces".equals(nameAsString)) {
@@ -341,6 +366,31 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             if (temp != null) {
                 pairs.remove(temp);
             }
+        }
+
+        private StringLiteralExpr fixClassPath(StringLiteralExpr path) {
+            // 期望类上面的路径调整为/abc/def这样的样式
+            String newPath = path.getValue();
+            if (!newPath.startsWith("/")) {
+                newPath = "/" + path;
+            }
+            if (newPath.endsWith("/")) {
+                // 去除最后的斜杠
+                newPath = newPath.substring(0, newPath.length() - 1);
+            }
+            return new StringLiteralExpr(newPath);
+        }
+
+        private StringLiteralExpr fixMethodSuffixPath(StringLiteralExpr value) {
+            // 期望方法上面的路径调整为/abc/def这样的样式
+            StringLiteralExpr v = value;
+            String path = v.getValue();
+            String newPath = path;
+            if (!newPath.startsWith("/")) {
+                newPath = "/" + path;
+            }
+            // 最后一级无论是否有"/",都保留现状
+            return new StringLiteralExpr(newPath);
         }
 
     }
