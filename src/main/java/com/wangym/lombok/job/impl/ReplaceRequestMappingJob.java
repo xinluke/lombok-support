@@ -279,6 +279,10 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
 
         private void doHandle(SingleMemberAnnotationExpr expr) {
             StringLiteralExpr v = (StringLiteralExpr) expr.getMemberValue();
+            StringLiteralExpr newPath = fixMethodSuffixPath(v);
+            if(!v.equals(newPath)) {
+                expr.setMemberValue(newPath);
+            }
             if (hasPath()) {
                 // 合并url
                 // v.setString(path + v.getValue());
