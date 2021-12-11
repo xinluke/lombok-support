@@ -372,7 +372,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             // 期望类上面的路径调整为/abc/def这样的样式
             String newPath = path.getValue();
             if (!newPath.startsWith("/")) {
-                newPath = "/" + path;
+                newPath = "/" + newPath;
             }
             if (newPath.endsWith("/")) {
                 // 去除最后的斜杠
@@ -387,7 +387,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             String path = v.getValue();
             String newPath = path;
             if (!newPath.startsWith("/")) {
-                newPath = "/" + path;
+                newPath = "/" + newPath;
             }
             // 最后一级无论是否有"/",都保留现状
             return new StringLiteralExpr(newPath);
