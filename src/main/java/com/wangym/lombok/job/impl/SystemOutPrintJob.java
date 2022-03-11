@@ -94,8 +94,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             // 将字段上面的@Resource换成@Autowired,统一管理
             for (Iterator<AnnotationExpr> iterator = anns.iterator(); iterator.hasNext();) {
                 AnnotationExpr annotationExpr = iterator.next();
-                MarkerAnnotationExpr maexpr = (MarkerAnnotationExpr) annotationExpr;
-                if ("Resource".equals(maexpr.getNameAsString())) {
+                if ("Resource".equals(annotationExpr.getNameAsString())) {
                     iterator.remove();
                     flag = true;
                     record = true;
@@ -137,7 +136,9 @@ public class SystemOutPrintJob extends AbstractJavaJob {
                     }
                 }
             }
-            if (flag && n.isInterface() && n.getExtendedTypes().isEmpty()) {
+            boolean hasMethod = !n.getMethods().isEmpty();
+            boolean fromExtended = n.getExtendedTypes().isEmpty();
+            if (flag && n.isInterface() && (!fromExtended || hasMethod)) {
                 // String name = getQualifiedName(n);
                 log.info("find target FeignClient:{},path:{}", n.getNameAsString(), path);
             }
