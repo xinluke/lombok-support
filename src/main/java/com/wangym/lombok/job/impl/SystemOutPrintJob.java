@@ -137,8 +137,9 @@ public class SystemOutPrintJob extends AbstractJavaJob {
                 }
             }
             boolean hasMethod = !n.getMethods().isEmpty();
-            boolean fromExtended = n.getExtendedTypes().isEmpty();
-            if (flag && n.isInterface() && (!fromExtended || hasMethod)) {
+            // 判断是否有继承关系，是不是单体
+            boolean standalone = n.getExtendedTypes().isEmpty();
+            if (flag && n.isInterface() && (standalone || hasMethod)) {
                 // String name = getQualifiedName(n);
                 log.info("find target FeignClient:{},path:{}", n.getNameAsString(), path);
             }
