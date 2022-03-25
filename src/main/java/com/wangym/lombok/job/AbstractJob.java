@@ -37,8 +37,20 @@ public abstract class AbstractJob implements Job {
     protected void addImports(CompilationUnit compilationUnit, Metadata meta) {
         NodeList<ImportDeclaration> imports = compilationUnit.getImports();
         String str = meta.getImportPkg();
+        // 上一级的import路径
+        String preFix = str.substring(0, str.lastIndexOf("."));
         boolean notExist = imports.stream()
-                .filter(it -> str.equals(it.getName().asString()))
+                .filter(it -> {
+                    String asString = it.getName().asString();
+                    // 使用*只能引入当前包下所有的类，不包含它包含的子包的类
+                    // 判断是否是符合带星号的import方式
+                    if (it.isAsterisk()) {
+                        return asString.equals(preFix);
+                    } else {
+                        // 普通模式的比较
+                        return str.equals(asString);
+                    }
+                })
                 .count() == 0;
         if (notExist) {
             imports.add(new ImportDeclaration(str, false, false));
