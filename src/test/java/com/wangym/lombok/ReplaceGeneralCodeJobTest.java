@@ -1,6 +1,5 @@
 package com.wangym.lombok;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
@@ -32,6 +31,11 @@ public class ReplaceGeneralCodeJobTest {
     @Test
     public void handle() throws IOException {
         job.handle(new ClassPathResource("GeneralCodeExample.java").getFile());
+    }
+
+    @Test
+    public void handle1() throws IOException {
+        job.handle(new ClassPathResource("DevInfo.java").getFile());
     }
 
     @Test
