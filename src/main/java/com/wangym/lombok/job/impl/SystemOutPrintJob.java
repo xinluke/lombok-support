@@ -19,10 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author wangym
@@ -45,6 +43,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         compilationUnit.accept(new MainMehtodVisitor(), null);
         compilationUnit.accept(new GuavaVisitor(compilationUnit), null);
         compilationUnit.accept(visitor, null);
+        compilationUnit.accept(new ValueVisitor(), null);
         AutowiredVisitor visit = new AutowiredVisitor();
         compilationUnit.accept(visit, null);
         if(visit.isFlag()) {
@@ -81,6 +80,38 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             }
         }, null);
     };
+
+    class ValueVisitor extends ModifierVisitor<Void> {
+        @Override
+        public Visitable visit(FieldDeclaration n, Void arg) {
+            Expression targetValExpr = null;
+            NodeList<AnnotationExpr> anns = n.getAnnotations();
+            // 将字段上面的@Value(value="${black.list}")去掉value=，统一格式
+            for (Iterator<AnnotationExpr> iterator = anns.iterator(); iterator.hasNext();) {
+                AnnotationExpr annotationExpr = iterator.next();
+                if ("Value".equals(annotationExpr.getNameAsString())) {
+                    if (annotationExpr instanceof NormalAnnotationExpr) {
+                        NormalAnnotationExpr naExpr = (NormalAnnotationExpr) annotationExpr;
+                        SimpleName simpleName = new SimpleName("value");
+                        List<MemberValuePair> list = naExpr.getPairs()
+                                .stream()
+                                .filter(it -> {
+                                    return it.getName().equals(simpleName);
+                                })
+                                .collect(Collectors.toList());
+                        if (list.size() == 1) {
+                            targetValExpr = list.get(0).getValue();
+                            iterator.remove();
+                        }
+                    }
+                }
+            }
+            if (targetValExpr != null) {
+                n.addAnnotation(new SingleMemberAnnotationExpr(new Name("Value"), targetValExpr));
+            }
+            return super.visit(n, arg);
+        }
+    }
 
     @Getter
     class AutowiredVisitor extends ModifierVisitor<Void> {
