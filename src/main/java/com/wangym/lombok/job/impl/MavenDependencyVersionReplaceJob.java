@@ -83,17 +83,28 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             for (Dependency d : dep) {
                 String a = d.getArtifactId();
                 String v = d.getVersion();
+                if(dvService.getHiddenVersionArtifactIdList().contains(a)) {
+                    // 去除版本号相关声明
+                    d.setVersion(null);
+                    notifyHasModify();
+                    continue;
+                }
                 // 如果是原始的值类型的版本号才进行处理
                 if (!isVersion(v)) {
                     continue;
                 }
                 insertProperty(a, v);
                 d.setVersion(getNewVersion(a));
-                // 说明pom.xml有变动
-                hasModify = true;
+                notifyHasModify();
             }
             mergeProperty();
         }
+
+        private void notifyHasModify() {
+            // 说明pom.xml有变动
+            hasModify = true;
+        }
+
 
         private void mergeProperty() {
             // 得到最全的版本列表
