@@ -13,6 +13,8 @@ import java.util.List;
 @Setter
 public class DependencyVersionService {
 
+    // 需要插入的依赖
+    private List<DepdencyModel> insertList = new ArrayList<>();
     // 升级的版本
     private List<VerModelData> updateList = new ArrayList<>();
     // 升级的版本

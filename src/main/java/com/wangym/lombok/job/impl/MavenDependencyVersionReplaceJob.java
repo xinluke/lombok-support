@@ -93,6 +93,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 if (!isVersion(v)) {
                     continue;
                 }
+
                 insertProperty(a, v);
                 d.setVersion(getNewVersion(a));
                 notifyHasModify();
@@ -160,6 +161,24 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 // 说明pom.xml有变动
                 hasModify = true;
             }
+            // 新增依赖
+            List<DepdencyModel> insertList = dvService.getInsertList();
+            if (insertList != null) {
+                insertList.forEach(it -> {
+                    // 不存在再添加
+                    if(emptyDepdency(it.getGroupId(),it.getArtifactId())) {
+                        model.getDependencies().add(it.build());
+                    }
+                });
+            }
+        }
+        private boolean emptyDepdency(String groupId,String artifactId){
+            List<Dependency> dependencies = model.getDependencies();
+            long count = dependencies
+                    .stream()
+                    .filter(it -> groupId.equals(it.getGroupId()) && artifactId.equals(it.getArtifactId()))
+                    .count();
+            return count==0;
         }
 
         private void checkAndUpdateVersion() {
