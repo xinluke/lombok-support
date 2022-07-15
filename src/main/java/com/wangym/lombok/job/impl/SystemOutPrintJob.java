@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class SystemOutPrintJob extends AbstractJavaJob {
+    public static final Name FEIGN_CLIENT = new Name("FeignClient");
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
     private Metadata meta2 = new Metadata("Autowired", "org.springframework.beans.factory.annotation.Autowired");
     private Metadata meta3 = new Metadata("Synchronized", "lombok.Synchronized");
@@ -145,6 +146,18 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         public FeignClientVisitor(String path) {
             super();
             this.path = path;
+        }
+
+        @Override
+        public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
+            //FeignClient注解写法标准化
+            if (n.getName().equals(FEIGN_CLIENT)) {
+                NodeList<MemberValuePair> pairs = new NodeList<>();
+                //字段名叫name比叫value好，简明扼要，表达清晰
+                pairs.add(new MemberValuePair("name", new StringLiteralExpr(n.getMemberValue().toString())));
+                return new NormalAnnotationExpr(FEIGN_CLIENT, pairs);
+            }
+            return super.visit(n, arg);
         }
 
         @Override
