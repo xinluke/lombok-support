@@ -27,6 +27,7 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
     public void process(CompilationUnit compilationUnit) {
         compilationUnit.accept(new FeignClientVisitor(), null);
         compilationUnit.accept(new EnableFeignClientsVisitor(), null);
+        compilationUnit.accept(new Junit5Visitor(), null);
     }
 
     class FeignClientVisitor extends ModifierVisitor<Void> {
@@ -81,5 +82,33 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
             replaceImportsIfExist(compilationUnit, deleteMeta, addMeta);
         }
 
+    }
+
+    class Junit5Visitor extends ModifierVisitor<Void> {
+        private Name targetExpr = new Name("Test");
+        private Name targetExpr2 = new Name("RunWith");
+        private Metadata deleteMeta2 = new Metadata("RunWith", "org.junit.runner.RunWith");
+        private Metadata deleteMeta = new Metadata("Test", "org.junit.Test");
+        private Metadata addMeta = new Metadata("Test", "org.junit.jupiter.api.Test");
+
+        @Override
+        public Visitable visit(NormalAnnotationExpr n, Void arg) {
+            if (n.getName().equals(targetExpr2)) {
+                deleteImports(n.findCompilationUnit().get(), deleteMeta2);
+                //在junit5中没有此注解，已不再需要
+                return null;
+            }
+            return super.visit(n, arg);
+        }
+
+        @Override
+        public Visitable visit(MarkerAnnotationExpr n, Void arg) {
+            // 找出@FeignClient
+            if (n.getName().equals(targetExpr)) {
+                //修改导入的包
+                replaceImportsIfExist(n.findCompilationUnit().get(), deleteMeta, addMeta);
+            }
+            return super.visit(n, arg);
+        }
     }
 }
