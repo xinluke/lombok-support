@@ -45,6 +45,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         compilationUnit.accept(new GuavaVisitor(compilationUnit), null);
         compilationUnit.accept(visitor, null);
         compilationUnit.accept(new ValueVisitor(), null);
+        compilationUnit.accept(new FeignClientVisitor(), null);
         AutowiredVisitor visit = new AutowiredVisitor();
         compilationUnit.accept(visit, null);
         if(visit.isFlag()) {
@@ -54,7 +55,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
 
     @Override
     public void applyPreProcess(CompilationUnit compilationUnit, String path) {
-        compilationUnit.accept(new FeignClientVisitor(path), null);
+        compilationUnit.accept(new FeignClientCheckVisitor(path), null);
         compilationUnit.accept(new ModifierVisitor<Void>() {
             @Override
             public Visitable visit(MethodDeclaration n, Void arg) {
@@ -139,14 +140,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             return super.visit(n, arg);
         }
     }
-
     class FeignClientVisitor extends ModifierVisitor<Void> {
-
-        private String path;
-        public FeignClientVisitor(String path) {
-            super();
-            this.path = path;
-        }
 
         @Override
         public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
@@ -154,10 +148,20 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             if (n.getName().equals(FEIGN_CLIENT)) {
                 NodeList<MemberValuePair> pairs = new NodeList<>();
                 //字段名叫name比叫value好，简明扼要，表达清晰
-                pairs.add(new MemberValuePair("name", new StringLiteralExpr(n.getMemberValue().toString())));
+                pairs.add(new MemberValuePair("name", n.getMemberValue()));
                 return new NormalAnnotationExpr(FEIGN_CLIENT, pairs);
             }
             return super.visit(n, arg);
+        }
+
+
+    }
+    class FeignClientCheckVisitor extends ModifierVisitor<Void> {
+
+        private String path;
+        public FeignClientCheckVisitor(String path) {
+            super();
+            this.path = path;
         }
 
         @Override
