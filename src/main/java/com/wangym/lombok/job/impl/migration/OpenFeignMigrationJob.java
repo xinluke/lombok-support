@@ -70,7 +70,7 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
         @Override
         public Visitable visit(MarkerAnnotationExpr n, Void arg) {
             // 找出@FeignClient
-            if (n.equals(targetExpr)) {
+            if (n.getName().equals(targetExpr)) {
                 //修改导入的包
                 replaceImportsIfExist(n.findCompilationUnit().get(), deleteMeta, addMeta);
             }

@@ -24,4 +24,8 @@ public class OpenFeignMigrationJobTest {
     public void handle() throws IOException {
         job.handle(new ClassPathResource("AppFeignClient.java").getFile());
     }
+    @Test
+    public void handle1() throws IOException {
+        job.handle(new ClassPathResource("Application.java").getFile());
+    }
 }
