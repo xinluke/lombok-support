@@ -92,7 +92,7 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
         private Metadata addMeta = new Metadata("Test", "org.junit.jupiter.api.Test");
 
         @Override
-        public Visitable visit(NormalAnnotationExpr n, Void arg) {
+        public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
             if (n.getName().equals(targetExpr2)) {
                 deleteImports(n.findCompilationUnit().get(), deleteMeta2);
                 //在junit5中没有此注解，已不再需要
