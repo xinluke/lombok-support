@@ -81,24 +81,30 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         public void process() {
             List<Dependency> dep = model.getDependencies();
             for (Dependency d : dep) {
-                String a = d.getArtifactId();
-                String v = d.getVersion();
-                if(dvService.getHiddenVersionArtifactIdList().contains(a)) {
-                    // 去除版本号相关声明
-                    d.setVersion(null);
-                    notifyHasModify();
-                    continue;
-                }
-                // 如果是原始的值类型的版本号才进行处理
-                if (!isVersion(v)) {
-                    continue;
-                }
-
-                insertProperty(a, v);
-                d.setVersion(getNewVersion(a));
-                notifyHasModify();
+                processDependency(d);
             }
+            model.getDependencyManagement()
+                    .getDependencies()
+                    .forEach(this::processDependency);
             mergeProperty();
+        }
+        private void processDependency(Dependency d){
+            String a = d.getArtifactId();
+            String v = d.getVersion();
+            if(dvService.getHiddenVersionArtifactIdList().contains(a)) {
+                // 去除版本号相关声明
+                d.setVersion(null);
+                notifyHasModify();
+                return;
+            }
+            // 如果是原始的值类型的版本号才进行处理
+            if (!isVersion(v)) {
+                return;
+            }
+
+            insertProperty(a, v);
+            d.setVersion(getNewVersion(a));
+            notifyHasModify();
         }
 
         private void notifyHasModify() {
@@ -109,19 +115,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
 
         private void mergeProperty() {
             // 得到最全的版本列表
-            List<Dependency> dependencies = model.getDependencies();
-            List<String> versionList = dependencies.stream().filter(it -> {
-                String version = it.getVersion();
-                if (version != null) {
-                    return version.startsWith("${") && version.endsWith(".version}");
-                }
-                // 沒有版本的情況,这种是使用parent制定的版本列表
-                return false;
-            }).map(it -> {
-                int length = it.getVersion().length();
-                //"${" + key + "}",去除包裹的的模式字符
-                return it.getVersion().substring(2, length - 1);
-            }).collect(Collectors.toList());
+            List<String> versionList = getVersionList(model);
             // 将重复的属性声明合并，在maven的默认处理中，同名的多次声明只有最后一次是生效的
             Properties prop = model.getProperties();
             List<String> refVersionList = prop.stringPropertyNames().stream() //
@@ -137,6 +131,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 // 说明pom.xml有变动
                 hasModify = true;
             }
+            List<Dependency> dependencies = model.getDependencies();
             // 删除重复的依赖声明
             Map<String, Long> collect = dependencies
                     .stream()
@@ -255,6 +250,31 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         }
 
 
+    }
+
+    private List<String> getVersionList(Model model) {
+        List<Dependency> dep1 = model.getDependencies();
+        List<Dependency> dep2 = model.getDependencyManagement().getDependencies();
+        ArrayList<Dependency> list = new ArrayList<>();
+        list.addAll(dep1);
+        list.addAll(dep2);
+        return getVersionList(list);
+    }
+
+    private List<String> getVersionList(List<Dependency> dependencies) {
+        List<String> versionList = dependencies.stream().filter(it -> {
+            String version = it.getVersion();
+            if (version != null) {
+                return version.startsWith("${") && version.endsWith(".version}");
+            }
+            // 沒有版本的情況,这种是使用parent制定的版本列表
+            return false;
+        }).map(it -> {
+            int length = it.getVersion().length();
+            //"${" + key + "}",去除包裹的的模式字符
+            return it.getVersion().substring(2, length - 1);
+        }).collect(Collectors.toList());
+        return versionList;
     }
 
 
