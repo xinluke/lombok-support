@@ -83,8 +83,9 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             for (Dependency d : dep) {
                 processDependency(d);
             }
-            model.getDependencyManagement()
-                    .getDependencies()
+            Optional.ofNullable(model.getDependencyManagement())
+                    .map(it->it.getDependencies())
+                    .orElse(Collections.emptyList())
                     .forEach(this::processDependency);
             mergeProperty();
         }
@@ -254,7 +255,9 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
 
     private List<String> getVersionList(Model model) {
         List<Dependency> dep1 = model.getDependencies();
-        List<Dependency> dep2 = model.getDependencyManagement().getDependencies();
+        List<Dependency> dep2 = Optional.ofNullable(model.getDependencyManagement())
+                .map(it->it.getDependencies())
+                .orElse(Collections.emptyList());
         ArrayList<Dependency> list = new ArrayList<>();
         list.addAll(dep1);
         list.addAll(dep2);
