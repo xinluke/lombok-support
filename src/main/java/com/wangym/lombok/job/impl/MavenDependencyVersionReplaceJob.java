@@ -198,6 +198,18 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                         break;
                     }
                 }
+                for (ReplaceModel item : dvService.getReplaceList()) {
+                    //替换成目标依赖
+                    if (dependency.getArtifactId().equals(item.getSource().getArtifactId())) {
+                        DepdencyModel target = item.getTarget();
+                        dependency.setArtifactId(target.getArtifactId());
+                        dependency.setGroupId(target.getGroupId());
+                        dependency.setVersion(target.getVersion());
+                        // 说明pom.xml有变动
+                        hasModify = true;
+                        break;
+                    }
+                }
             }
         }
 

@@ -21,6 +21,8 @@ public class DependencyVersionService {
     private List<VerModelData> parentList = new ArrayList<>();
     // 删除的版本
     private List<VerModelData> deleteList = new ArrayList<>();
+    //替换的版本
+    private List<ReplaceModel> replaceList = new ArrayList<>();
     // 这个版本托管为统一依赖的方式，声明受管理的ArtifactId
     private List<String> hiddenVersionArtifactIdList = new ArrayList<>();
     // 是否删除构建库配置
