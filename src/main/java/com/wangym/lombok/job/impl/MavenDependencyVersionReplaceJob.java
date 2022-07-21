@@ -87,7 +87,21 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     .map(it->it.getDependencies())
                     .orElse(Collections.emptyList())
                     .forEach(this::processDependency);
+            List<Dependency> dep2 = getDependencyOfDependencyManagement();
+            for (Iterator<Dependency> iterator = dep2.iterator(); iterator.hasNext(); ) {
+                Dependency dependency = iterator.next();
+                //在依赖管理器中的版本不能为空，这样会导致依赖出错
+                if (dependency.getVersion() == null) {
+                    iterator.remove();
+                }
+            }
             mergeProperty();
+        }
+
+        private List<Dependency> getDependencyOfDependencyManagement() {
+            return Optional.ofNullable(model.getDependencyManagement())
+                    .map(it -> it.getDependencies())
+                    .orElse(Collections.emptyList());
         }
         private void processDependency(Dependency d){
             String a = d.getArtifactId();
