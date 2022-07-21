@@ -32,4 +32,9 @@ public class OpenFeignMigrationJobTest {
     public void handle2() throws IOException {
         job.handle(new ClassPathResource("QuestionServiceTest.java").getFile());
     }
+
+    @Test
+    public void handle3() throws IOException {
+        job.handle(new ClassPathResource("UserServiceTest.java").getFile());
+    }
 }

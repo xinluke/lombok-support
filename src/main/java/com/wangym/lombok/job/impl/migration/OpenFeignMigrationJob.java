@@ -23,6 +23,7 @@ import java.util.List;
 @Slf4j
 public class OpenFeignMigrationJob extends AbstractJavaJob {
 
+    public static final NameExpr ASSERT_SCOPE = new NameExpr("Assert");
     private List<AnnotationMetaModel> paramList;
     public static final String CONTEXT_ID = "contextId";
 
@@ -126,6 +127,7 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
         private Name targetExpr2 = new Name("RunWith");
         private Metadata deleteMeta2 = new Metadata("RunWith", "org.junit.runner.RunWith");
 
+        private AnnotationMetaModel assertionsModel = new AnnotationMetaModel("Assert", "Assertions", "org.junit.Assert", "org.junit.jupiter.api.Assertions");
         @Override
         public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
             if (n.getName().equals(targetExpr2)) {
@@ -133,6 +135,18 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
                 //在junit5中没有此注解，已不再需要
                 return null;
             }
+            return super.visit(n, arg);
+        }
+
+        @Override
+        public Visitable visit(MethodCallExpr n, Void arg) {
+            //Assert 类的调用等价替换为5中Assertions
+            n.getScope()
+                    .filter(it -> it.equals(ASSERT_SCOPE))
+                    .ifPresent(it -> {
+                        n.setScope(new NameExpr("Assertions"));
+                        replaceImportsIfExist(n.findCompilationUnit().get(), assertionsModel.getImportPackage(), assertionsModel.getNewImportPackage());
+                    });
             return super.visit(n, arg);
         }
 

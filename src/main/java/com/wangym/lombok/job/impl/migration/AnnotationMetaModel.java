@@ -28,6 +28,6 @@ public class AnnotationMetaModel {
         this.annName = new Name(annName);
         this.newAnnName = new Name(newAnnName);
         this.importPackage = new Metadata(annName, importPackage);
-        this.newImportPackage = new Metadata(annName, newImportPackage);
+        this.newImportPackage = new Metadata(newAnnName, newImportPackage);
     }
 }
