@@ -11,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @Author: wangym
  * @Date: 2022/7/14 18:57
@@ -20,14 +23,23 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class OpenFeignMigrationJob extends AbstractJavaJob {
 
-
+    private List<AnnotationMetaModel> paramList;
     public static final String CONTEXT_ID = "contextId";
+
+    public OpenFeignMigrationJob() {
+        paramList = new ArrayList<>();
+        paramList.add(new AnnotationMetaModel("Test", "org.junit.Test", "org.junit.jupiter.api.Test"));
+        paramList.add(new AnnotationMetaModel("RunWith", "org.junit.runner.RunWith", "org.junit.jupiter.api.Test"));
+        paramList.add(new AnnotationMetaModel("Before", "BeforeEach", "org.junit.Before", "org.junit.jupiter.api.BeforeEach"));
+        paramList.add(new AnnotationMetaModel("After", "AfterEach", "org.junit.After", "org.junit.jupiter.api.AfterEach"));
+    }
 
     @Override
     public void process(CompilationUnit compilationUnit) {
         compilationUnit.accept(new FeignClientVisitor(), null);
         compilationUnit.accept(new EnableFeignClientsVisitor(), null);
         compilationUnit.accept(new Junit5Visitor(), null);
+        compilationUnit.accept(new ReplaceEasyvisitor(paramList), null);
     }
 
     class FeignClientVisitor extends ModifierVisitor<Void> {
@@ -83,13 +95,36 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
         }
 
     }
+    class ReplaceEasyvisitor extends ModifierVisitor<Void>{
+        private List<AnnotationMetaModel> paramList;
+
+        public ReplaceEasyvisitor(List<AnnotationMetaModel> paramList) {
+            this.paramList = paramList;
+        }
+
+        @Override
+        public Visitable visit(MarkerAnnotationExpr n, Void arg) {
+            for (AnnotationMetaModel model : paramList) {
+                // 找出对应的注解
+                if (n.getName().equals(model.getAnnName())) {
+                    //修改导入的包
+                    replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
+                    if(!model.getAnnName().equals(model.getNewAnnName())) {
+                        //需要更新为新的名称，因为全局就一份，需要clone
+                        //n.setName(model.getNewAnnName().clone());
+                        //需要重新构建此对象
+                        return new MarkerAnnotationExpr(model.getNewAnnName().clone());
+                    }
+                }
+            }
+            return super.visit(n, arg);
+        }
+
+    }
 
     class Junit5Visitor extends ModifierVisitor<Void> {
-        private Name targetExpr = new Name("Test");
         private Name targetExpr2 = new Name("RunWith");
         private Metadata deleteMeta2 = new Metadata("RunWith", "org.junit.runner.RunWith");
-        private Metadata deleteMeta = new Metadata("Test", "org.junit.Test");
-        private Metadata addMeta = new Metadata("Test", "org.junit.jupiter.api.Test");
 
         @Override
         public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
@@ -101,14 +136,5 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
             return super.visit(n, arg);
         }
 
-        @Override
-        public Visitable visit(MarkerAnnotationExpr n, Void arg) {
-            // 找出@FeignClient
-            if (n.getName().equals(targetExpr)) {
-                //修改导入的包
-                replaceImportsIfExist(n.findCompilationUnit().get(), deleteMeta, addMeta);
-            }
-            return super.visit(n, arg);
-        }
     }
 }
