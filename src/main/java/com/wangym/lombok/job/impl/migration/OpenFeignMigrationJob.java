@@ -2,6 +2,7 @@ package com.wangym.lombok.job.impl.migration;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
@@ -56,8 +57,9 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
                         .filter(it -> it.getName().equals(new SimpleName(CONTEXT_ID)))
                         .count() > 0;
                 if (!exist) {
+                    ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                     //补充contextId字段值，设置为类名
-                    pairs.add(new MemberValuePair(CONTEXT_ID, new StringLiteralExpr(n.getNameAsString())));
+                    pairs.add(new MemberValuePair(CONTEXT_ID, new StringLiteralExpr(parent.getNameAsString())));
                 }
                 //修改导入的包
                 replaceImportsIfExist(n.findCompilationUnit().get(), deleteMeta, addMeta);
