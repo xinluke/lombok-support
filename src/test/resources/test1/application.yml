@@ -25,4 +25,7 @@ pom:
 logging:
   level:
      com.wangym.lombok.job.impl.MavenDependencyVersionReplaceJob: debug
-    
+server:
+  port: 8200
+  servlet:
+    context-path: /v1/jshare
