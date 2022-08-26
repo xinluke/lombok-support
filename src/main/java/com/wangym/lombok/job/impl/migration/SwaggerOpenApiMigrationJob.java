@@ -2,6 +2,7 @@ package com.wangym.lombok.job.impl.migration;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
@@ -54,7 +55,8 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 if (name != null) {
                     pairs.add(new MemberValuePair("name", name.getValue()));
                 } else {
-                    pairs.add(new MemberValuePair("name", new StringLiteralExpr()));
+                    ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
+                    pairs.add(new MemberValuePair("name", new StringLiteralExpr(parent.getName().asString())));
                 }
                 return new NormalAnnotationExpr(new Name("Tag"), pairs);
             }
@@ -78,7 +80,8 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 if (value != null) {
                     pairs.add(new MemberValuePair("summary", value.getValue()));
                 } else {
-                    pairs.add(new MemberValuePair("summary", new StringLiteralExpr()));
+                    ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
+                    pairs.add(new MemberValuePair("summary", new StringLiteralExpr(parent.getName().asString())));
                 }
                 return new NormalAnnotationExpr(new Name("Operation"), pairs);
             }
