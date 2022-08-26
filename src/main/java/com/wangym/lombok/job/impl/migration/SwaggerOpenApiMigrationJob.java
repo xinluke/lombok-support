@@ -25,6 +25,7 @@ import static com.wangym.lombok.job.impl.SystemOutPrintJob.FEIGN_CLIENT;
 public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
     @Override
     public void process(CompilationUnit compilationUnit) {
+        //https://springdoc.org/#migrating-from-springfox
         compilationUnit.accept(new ApiVisitor(), null);
         compilationUnit.accept(new ApiOperationVisitor(), null);
         compilationUnit.accept(new ApiModelPropertyVisitor(), null);
@@ -55,7 +56,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 } else {
                     pairs.add(new MemberValuePair("name", new StringLiteralExpr()));
                 }
-                return new NormalAnnotationExpr(FEIGN_CLIENT, pairs);
+                return new NormalAnnotationExpr(new Name("Tag"), pairs);
             }
             return super.visit(n, arg);
         }
@@ -79,7 +80,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 } else {
                     pairs.add(new MemberValuePair("summary", new StringLiteralExpr()));
                 }
-                return new NormalAnnotationExpr(FEIGN_CLIENT, pairs);
+                return new NormalAnnotationExpr(new Name("Operation"), pairs);
             }
             return super.visit(n, arg);
         }
