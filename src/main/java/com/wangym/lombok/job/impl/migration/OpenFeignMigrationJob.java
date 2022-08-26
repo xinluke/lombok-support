@@ -30,10 +30,13 @@ public class OpenFeignMigrationJob extends AbstractJavaJob {
 
     public OpenFeignMigrationJob() {
         paramList = new ArrayList<>();
+        //junit相关
         paramList.add(new AnnotationMetaModel("Test", "org.junit.Test", "org.junit.jupiter.api.Test"));
         paramList.add(new AnnotationMetaModel("RunWith", "org.junit.runner.RunWith", "org.junit.jupiter.api.Test"));
         paramList.add(new AnnotationMetaModel("Before", "BeforeEach", "org.junit.Before", "org.junit.jupiter.api.BeforeEach"));
         paramList.add(new AnnotationMetaModel("After", "AfterEach", "org.junit.After", "org.junit.jupiter.api.AfterEach"));
+        //swagger相关
+        paramList.add(new AnnotationMetaModel("ApiModel", "Schema", "io.swagger.annotations.ApiModel", "io.swagger.v3.oas.annotations.media.Schema"));
     }
 
     @Override

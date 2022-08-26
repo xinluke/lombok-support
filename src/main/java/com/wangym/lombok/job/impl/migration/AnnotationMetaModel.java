@@ -30,4 +30,8 @@ public class AnnotationMetaModel {
         this.importPackage = new Metadata(annName, importPackage);
         this.newImportPackage = new Metadata(newAnnName, newImportPackage);
     }
+    public Name getNewAnnNameClone(){
+        //新的Annotation是用来构建的，需要每个都是单独的实例
+        return newAnnName.clone();
+    }
 }
