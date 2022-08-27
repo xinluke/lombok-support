@@ -3,7 +3,10 @@ package com.wangym.lombok.job.impl.migration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.expr.MemberValuePair;
+import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
@@ -65,6 +68,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                     ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                     pairs.add(new MemberValuePair("name", new StringLiteralExpr(parent.getName().asString())));
                 }
+                replacedCheck(n, pairs, map);
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
@@ -85,22 +89,19 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 //字段名叫name比叫value好，简明扼要，表达清晰
                 MemberValuePair value = map.get("value");
                 MemberValuePair notes = map.get("notes");
-                return getNormalAnnotationExpr(n, pairs, value, notes);
+                if (notes != null) {
+                    pairs.add(new MemberValuePair("description", notes.getValue()));
+                }
+                if (value != null) {
+                    pairs.add(new MemberValuePair("summary", value.getValue()));
+                } else {
+                    ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
+                    pairs.add(new MemberValuePair("summary", new StringLiteralExpr(parent.getName().asString())));
+                }
+                replacedCheck(n, pairs, map);
+                return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
-        }
-
-        private NormalAnnotationExpr getNormalAnnotationExpr(AnnotationExpr n, NodeList<MemberValuePair> pairs, MemberValuePair value, MemberValuePair notes) {
-            if (notes != null) {
-                pairs.add(new MemberValuePair("description", notes.getValue()));
-            }
-            if (value != null) {
-                pairs.add(new MemberValuePair("summary", value.getValue()));
-            } else {
-                ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
-                pairs.add(new MemberValuePair("summary", new StringLiteralExpr(parent.getName().asString())));
-            }
-            return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
         }
 
         @Override
@@ -140,6 +141,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 if (notes != null) {
                     pairs.add(new MemberValuePair("description", notes.getValue()));
                 }
+                replacedCheck(n, pairs, map);
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
@@ -156,6 +158,15 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
+        }
+    }
+
+    private void replacedCheck(NormalAnnotationExpr n, NodeList<MemberValuePair> pairs, Map<String, MemberValuePair> map) {
+        //有种情况是新的参数列表会进行补充和自定义添加，所以一定不会小于原来的参数列表
+        //常规情况是两者相等，我们做一对一的转化
+        if (pairs.size() < map.size()) {
+            //如果未完全替换，则抛出异常。避免新代码编译过了，但提交到生产出现问题
+            throw new IllegalStateException("Not fully replaced, please check" + n);
         }
     }
 
