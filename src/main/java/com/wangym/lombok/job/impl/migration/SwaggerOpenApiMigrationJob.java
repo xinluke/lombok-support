@@ -136,7 +136,8 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                     pairs.add(new MemberValuePair("example", example.getValue()));
                 }
                 if (value != null) {
-                    pairs.add(new MemberValuePair("name", value.getValue()));
+                    //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
+                    pairs.add(new MemberValuePair("description", value.getValue()));
                 }
                 if (notes != null) {
                     pairs.add(new MemberValuePair("description", notes.getValue()));
@@ -154,7 +155,8 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
 
                 NodeList<MemberValuePair> pairs = new NodeList<>();
-                pairs.add(new MemberValuePair("name", n.getMemberValue()));
+                //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
+                pairs.add(new MemberValuePair("description", n.getMemberValue()));
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
