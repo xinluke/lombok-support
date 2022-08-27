@@ -38,7 +38,8 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 .orElse(new NodeList<>())
                 .stream()
                 //toMap
-                .collect(Collectors.toMap(it -> it.getName().asString(), (x) -> x));
+                //重新创建新的实例
+                .collect(Collectors.toMap(it -> it.getName().asString(), (x) -> x.clone()));
     }
 
     class ApiVisitor extends ModifierVisitor<Void> {
@@ -118,6 +119,31 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
 
     class ApiModelPropertyVisitor extends ModifierVisitor<Void> {
         private AnnotationMetaModel model = new AnnotationMetaModel("ApiModelProperty", "Schema", "io.swagger.annotations.ApiModelProperty", "io.swagger.v3.oas.annotations.media.Schema");
+
+        @Override
+        public Visitable visit(NormalAnnotationExpr n, Void arg) {
+            if (n.getName().equals(model.getAnnName())) {
+                //修改导入的包
+                replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
+
+                NodeList<MemberValuePair> pairs = new NodeList<>();
+                Map<String, MemberValuePair> map = pairsToMap(n.getPairs());
+                MemberValuePair value = map.get("value");
+                MemberValuePair example = map.get("example");
+                MemberValuePair notes = map.get("notes");
+                if (example != null) {
+                    pairs.add(new MemberValuePair("example", example.getValue()));
+                }
+                if (value != null) {
+                    pairs.add(new MemberValuePair("name", value.getValue()));
+                }
+                if (notes != null) {
+                    pairs.add(new MemberValuePair("description", notes.getValue()));
+                }
+                return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
+            }
+            return super.visit(n, arg);
+        }
 
         @Override
         public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
