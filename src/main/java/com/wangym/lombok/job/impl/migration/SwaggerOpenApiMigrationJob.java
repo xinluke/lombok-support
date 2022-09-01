@@ -29,6 +29,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
     @Override
     public void process(CompilationUnit compilationUnit) {
         //https://springdoc.org/#migrating-from-springfox
+        //springfox的版本（包括3.0），在spring2.6之后出现问题，没办法兼容，需要切换为springdoc的方式
         compilationUnit.accept(new ApiVisitor(), null);
         compilationUnit.accept(new ApiOperationVisitor(), null);
         compilationUnit.accept(new ApiModelPropertyVisitor(), null);
