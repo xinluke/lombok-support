@@ -137,6 +137,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 MemberValuePair value = map.get("value");
                 MemberValuePair example = map.get("example");
                 MemberValuePair notes = map.get("notes");
+                MemberValuePair required = map.get("required");
                 if (example != null) {
                     pairs.add(new MemberValuePair("example", example.getValue()));
                 }
@@ -146,6 +147,9 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 }
                 if (notes != null) {
                     pairs.add(new MemberValuePair("description", notes.getValue()));
+                }
+                if (required != null) {
+                    pairs.add(new MemberValuePair("required", required.getValue()));
                 }
                 replacedCheck(n, pairs, map);
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
