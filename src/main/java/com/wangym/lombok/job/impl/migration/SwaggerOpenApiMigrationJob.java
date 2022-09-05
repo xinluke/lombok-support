@@ -33,6 +33,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
         compilationUnit.accept(new ApiVisitor(), null);
         compilationUnit.accept(new ApiOperationVisitor(), null);
         compilationUnit.accept(new ApiModelPropertyVisitor(), null);
+        compilationUnit.accept(new ApiModelVisitor(), null);
         compilationUnit.accept(new ApiParamVisitor(), null);
     }
 
@@ -164,6 +165,23 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
             }
             return super.visit(n, arg);
         }
+
+        @Override
+        public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
+            if (n.getName().equals(model.getAnnName())) {
+                //修改导入的包
+                replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
+
+                NodeList<MemberValuePair> pairs = new NodeList<>();
+                //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
+                pairs.add(new MemberValuePair("description", n.getMemberValue()));
+                return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
+            }
+            return super.visit(n, arg);
+        }
+    }
+    class ApiModelVisitor extends ModifierVisitor<Void> {
+        private AnnotationMetaModel model = new AnnotationMetaModel("ApiModel", "Schema", "io.swagger.annotations.ApiModel", "io.swagger.v3.oas.annotations.media.Schema");
 
         @Override
         public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
