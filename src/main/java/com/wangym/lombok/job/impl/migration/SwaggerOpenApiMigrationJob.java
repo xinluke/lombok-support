@@ -3,10 +3,8 @@ package com.wangym.lombok.job.impl.migration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.MemberValuePair;
-import com.github.javaparser.ast.expr.NormalAnnotationExpr;
-import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
-import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.wangym.lombok.job.AbstractJavaJob;
@@ -80,6 +78,18 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
     class ApiOperationVisitor extends ModifierVisitor<Void> {
         private AnnotationMetaModel model = new AnnotationMetaModel("ApiOperation", "Operation", "io.swagger.annotations.ApiOperation", "io.swagger.v3.oas.annotations.Operation");
 
+        @Override
+        public Visitable visit(MethodDeclaration n, Void arg) {
+            NodeList<AnnotationExpr> anns = n.getAnnotations();
+            int size = anns.size();
+            if (size > 2 && anns.get(size - 1).getName().equals(model.getAnnName())) {
+                AnnotationExpr lastExpr = anns.get(size - 1);
+                //兼容做法，通过测试发现，如果有超2行且要替换的@ApiOperation在最后一行，就会导致格式出错，先调换一下行数
+                anns.set(size - 1, anns.get(size - 2));
+                anns.set(size - 2, lastExpr);
+            }
+            return super.visit(n, arg);
+        }
         @Override
         public Visitable visit(NormalAnnotationExpr n, Void arg) {
             if (n.getName().equals(model.getAnnName())) {
