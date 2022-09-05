@@ -1,6 +1,5 @@
 package com.wangym.lombok;
 
-import com.wangym.lombok.job.impl.migration.OpenFeignMigrationJob;
 import com.wangym.lombok.job.impl.migration.SwaggerOpenApiMigrationJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +35,6 @@ public class SwaggerOpenApiMigrationJobTest {
 
     @Test
     public void handle3() throws IOException {
-        job.handle(new ClassPathResource("UserServiceTest.java").getFile());
+        job.handle(new ClassPathResource("Top100Controller.java").getFile());
     }
 }
