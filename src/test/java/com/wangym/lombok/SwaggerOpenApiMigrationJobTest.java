@@ -31,7 +31,7 @@ public class SwaggerOpenApiMigrationJobTest {
     }
     @Test
     public void handle2() throws IOException {
-        job.handle(new ClassPathResource("QuestionServiceTest.java").getFile());
+        job.handle(new ClassPathResource("PluginUpdateForm.java").getFile());
     }
 
     @Test
