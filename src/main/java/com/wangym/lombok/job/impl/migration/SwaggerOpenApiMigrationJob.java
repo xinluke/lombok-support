@@ -126,8 +126,10 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 //修改导入的包
                 replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
 
+                //使用clone对象,避免生成的代码格式含有原来的格式，导致格式错误
+                SingleMemberAnnotationExpr newExpr = n.clone();
                 NodeList<MemberValuePair> pairs = new NodeList<>();
-                pairs.add(new MemberValuePair("summary", n.getMemberValue()));
+                pairs.add(new MemberValuePair("summary", newExpr.getMemberValue()));
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
@@ -182,9 +184,11 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 //修改导入的包
                 replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
 
+                //使用clone对象,避免生成的代码格式含有原来的格式，导致格式错误
+                SingleMemberAnnotationExpr newExpr = n.clone();
                 NodeList<MemberValuePair> pairs = new NodeList<>();
                 //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
-                pairs.add(new MemberValuePair("description", n.getMemberValue()));
+                pairs.add(new MemberValuePair("description", newExpr.getMemberValue()));
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
@@ -199,9 +203,11 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 //修改导入的包
                 replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
 
+                //使用clone对象,避免生成的代码格式含有原来的格式，导致格式错误
+                SingleMemberAnnotationExpr newExpr = n.clone();
                 NodeList<MemberValuePair> pairs = new NodeList<>();
                 //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
-                pairs.add(new MemberValuePair("description", n.getMemberValue()));
+                pairs.add(new MemberValuePair("description", newExpr.getMemberValue()));
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
@@ -226,8 +232,10 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 //修改导入的包
                 replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
 
+                //使用clone对象,避免生成的代码格式含有原来的格式，导致格式错误
+                SingleMemberAnnotationExpr newExpr = n.clone();
                 NodeList<MemberValuePair> pairs = new NodeList<>();
-                pairs.add(new MemberValuePair("name", n.getMemberValue()));
+                pairs.add(new MemberValuePair("name", newExpr.getMemberValue()));
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
