@@ -153,8 +153,18 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 MemberValuePair notes = map.get("notes");
                 MemberValuePair required = map.get("required");
                 MemberValuePair hidden = map.get("hidden");
+                MemberValuePair readOnly = map.get("readOnly");
+                MemberValuePair allowableValues = map.get("allowableValues");
                 if (hidden != null) {
                     pairs.add(new MemberValuePair("hidden", hidden.getValue()));
+                }
+                if (allowableValues != null) {
+                    //存在相同属性，可以直接替换
+                    pairs.add(new MemberValuePair("allowableValues", allowableValues.getValue().clone()));
+                }
+                if (readOnly != null) {
+                    //&&readOnly.getValue().equals(new BooleanLiteralExpr(true))
+                    pairs.add(new MemberValuePair("accessMode", new FieldAccessExpr(new FieldAccessExpr(new NameExpr("Schema"),"AccessMode"),"READ_ONLY")));
                 }
                 if (example != null) {
                     pairs.add(new MemberValuePair("example", example.getValue()));
@@ -197,6 +207,24 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
     class ApiModelVisitor extends ModifierVisitor<Void> {
         private AnnotationMetaModel model = new AnnotationMetaModel("ApiModel", "Schema", "io.swagger.annotations.ApiModel", "io.swagger.v3.oas.annotations.media.Schema");
 
+        @Override
+        public Visitable visit(NormalAnnotationExpr n, Void arg) {
+            if (n.getName().equals(model.getAnnName())) {
+                //修改导入的包
+                replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
+
+                NodeList<MemberValuePair> pairs = new NodeList<>();
+                Map<String, MemberValuePair> map = pairsToMap(n.getPairs());
+                MemberValuePair value = map.get("value");
+                if (value != null) {
+                    //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
+                    pairs.add(new MemberValuePair("description", value.getValue()));
+                }
+                replacedCheck(n, pairs, map);
+                return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
+            }
+            return super.visit(n, arg);
+        }
         @Override
         public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
             if (n.getName().equals(model.getAnnName())) {
