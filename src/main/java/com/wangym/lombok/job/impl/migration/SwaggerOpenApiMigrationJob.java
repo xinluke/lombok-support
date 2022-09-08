@@ -1,6 +1,8 @@
 package com.wangym.lombok.job.impl.migration;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -45,7 +47,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 .collect(Collectors.toMap(it -> it.getName().asString(), (x) -> x.clone()));
     }
 
-    class ApiVisitor extends ModifierVisitor<Void> {
+    class ApiVisitor extends DeleteUnusedVisitor {
         private AnnotationMetaModel model = new AnnotationMetaModel("Api", "Tag", "io.swagger.annotations.Api", "io.swagger.v3.oas.annotations.tags.Tag");
 
         @Override
@@ -72,6 +74,11 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
+        }
+
+        @Override
+        public AnnotationMetaModel getAnnotationMetaModel() {
+            return model;
         }
     }
 
@@ -135,8 +142,20 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
             return super.visit(n, arg);
         }
     }
+    abstract class DeleteUnusedVisitor extends ModifierVisitor<Void> {
+        public abstract AnnotationMetaModel getAnnotationMetaModel();
 
-    class ApiModelPropertyVisitor extends ModifierVisitor<Void> {
+        @Override
+        public Node visit(ImportDeclaration n, Void arg) {
+            //先删除掉不符合的导入，可能代码中是没用的，忘记删除掉的
+            if(n.getNameAsString().equals(getAnnotationMetaModel().getImportPackage().getImportPkg())) {
+                return null;
+            }
+            return super.visit(n, arg);
+        }
+    }
+
+    class ApiModelPropertyVisitor extends DeleteUnusedVisitor {
         private AnnotationMetaModel model = new AnnotationMetaModel("ApiModelProperty", "Schema", "io.swagger.annotations.ApiModelProperty", "io.swagger.v3.oas.annotations.media.Schema");
 
         @Override
@@ -203,6 +222,11 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
             }
             return super.visit(n, arg);
         }
+
+        @Override
+        public AnnotationMetaModel getAnnotationMetaModel() {
+            return model;
+        }
     }
     class ApiModelVisitor extends ModifierVisitor<Void> {
         private AnnotationMetaModel model = new AnnotationMetaModel("ApiModel", "Schema", "io.swagger.annotations.ApiModel", "io.swagger.v3.oas.annotations.media.Schema");
@@ -263,7 +287,25 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 //使用clone对象,避免生成的代码格式含有原来的格式，导致格式错误
                 SingleMemberAnnotationExpr newExpr = n.clone();
                 NodeList<MemberValuePair> pairs = new NodeList<>();
-                pairs.add(new MemberValuePair("name", newExpr.getMemberValue()));
+                pairs.add(new MemberValuePair("description", newExpr.getMemberValue()));
+                return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
+            }
+            return super.visit(n, arg);
+        }
+        @Override
+        public Visitable visit(NormalAnnotationExpr n, Void arg) {
+            if (n.getName().equals(model.getAnnName())) {
+                //修改导入的包
+                replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
+
+                NodeList<MemberValuePair> pairs = new NodeList<>();
+                Map<String, MemberValuePair> map = pairsToMap(n.getPairs());
+                MemberValuePair value = map.get("value");
+                if (value != null) {
+                    //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
+                    pairs.add(new MemberValuePair("description", value.getValue()));
+                }
+                replacedCheck(n, pairs, map);
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);

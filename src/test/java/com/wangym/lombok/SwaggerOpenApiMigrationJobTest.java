@@ -37,4 +37,8 @@ public class SwaggerOpenApiMigrationJobTest {
     public void handle3() throws IOException {
         job.handle(new ClassPathResource("Top100Controller.java").getFile());
     }
+    @Test
+    public void handle4() throws IOException {
+        job.handle(new ClassPathResource("PushSmsConfig.java").getFile());
+    }
 }

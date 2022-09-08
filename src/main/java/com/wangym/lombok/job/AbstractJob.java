@@ -76,8 +76,9 @@ public abstract class AbstractJob implements Job {
         if (!res.isEmpty()) {
             res.stream()
                     .forEach(it -> compilationUnit.remove(it));
-            addImports(compilationUnit, newMeta);
         }
+        //添加和删除独立
+        addImports(compilationUnit, newMeta);
 
     }
 
