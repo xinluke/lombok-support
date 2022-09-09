@@ -35,6 +35,7 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
         compilationUnit.accept(new ApiModelPropertyVisitor(), null);
         compilationUnit.accept(new ApiModelVisitor(), null);
         compilationUnit.accept(new ApiParamVisitor(), null);
+        compilationUnit.accept(new ApiIgnoreVisitor(), null);
     }
 
     private Map<String, MemberValuePair> pairsToMap(NodeList<MemberValuePair> pairs) {
@@ -309,6 +310,28 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
             }
             return super.visit(n, arg);
+        }
+    }
+    class ApiIgnoreVisitor extends DeleteUnusedVisitor {
+        private AnnotationMetaModel model = new AnnotationMetaModel("ApiIgnore", "Parameter", "io.swagger.annotations.ApiIgnore", "io.swagger.v3.oas.annotations.Parameter");
+
+        @Override
+        public Visitable visit(MarkerAnnotationExpr n, Void arg) {
+            if (n.getName().equals(model.getAnnName())) {
+                //修改导入的包
+                replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
+
+                NodeList<MemberValuePair> pairs = new NodeList<>();
+                //先假定@ApiIgnore注解是出现在参数字段上，所以替换为@ApiIgnore → @Parameter(hidden = true)
+                pairs.add(new MemberValuePair("hidden", new BooleanLiteralExpr(true)));
+                return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
+            }
+            return super.visit(n, arg);
+        }
+
+        @Override
+        public AnnotationMetaModel getAnnotationMetaModel() {
+            return model;
         }
     }
 }
