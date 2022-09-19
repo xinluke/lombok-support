@@ -62,12 +62,21 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 //字段名叫name比叫value好，简明扼要，表达清晰
                 MemberValuePair name = map.get("name");
                 MemberValuePair description = map.get("description");
+                MemberValuePair tags = map.get("tags");
+                boolean hasName = false;
+                if (tags != null) {
+                    pairs.add(new MemberValuePair("name", tags.getValue()));
+                    hasName = true;
+                }
                 if (description != null) {
                     pairs.add(new MemberValuePair("description", description.getValue()));
                 }
                 if (name != null) {
                     pairs.add(new MemberValuePair("name", name.getValue()));
-                } else {
+                    hasName = true;
+                }
+                //补全名称
+                if (!hasName) {
                     ClassOrInterfaceDeclaration parent = n.findAncestor(ClassOrInterfaceDeclaration.class).get();
                     pairs.add(new MemberValuePair("name", new StringLiteralExpr(parent.getName().asString())));
                 }
