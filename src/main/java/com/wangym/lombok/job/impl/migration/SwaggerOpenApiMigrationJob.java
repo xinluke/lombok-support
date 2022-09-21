@@ -85,6 +85,20 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
             }
             return super.visit(n, arg);
         }
+        @Override
+        public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
+            if (n.getName().equals(model.getAnnName())) {
+                //修改导入的包
+                replaceImportsIfExist(n.findCompilationUnit().get(), model.getImportPackage(), model.getNewImportPackage());
+
+                //使用clone对象,避免生成的代码格式含有原来的格式，导致格式错误
+                SingleMemberAnnotationExpr newExpr = n.clone();
+                NodeList<MemberValuePair> pairs = new NodeList<>();
+                pairs.add(new MemberValuePair("name", newExpr.getMemberValue()));
+                return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
+            }
+            return super.visit(n, arg);
+        }
 
         @Override
         public AnnotationMetaModel getAnnotationMetaModel() {
