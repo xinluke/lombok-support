@@ -264,9 +264,13 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 NodeList<MemberValuePair> pairs = new NodeList<>();
                 Map<String, MemberValuePair> map = pairsToMap(n.getPairs());
                 MemberValuePair value = map.get("value");
+                MemberValuePair description = map.get("description");
                 if (value != null) {
                     //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
                     pairs.add(new MemberValuePair("description", value.getValue()));
+                }
+                if (description != null) {
+                    pairs.add(new MemberValuePair("description", description.getValue()));
                 }
                 replacedCheck(n, pairs, map);
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
@@ -325,9 +329,25 @@ public class SwaggerOpenApiMigrationJob extends AbstractJavaJob {
                 NodeList<MemberValuePair> pairs = new NodeList<>();
                 Map<String, MemberValuePair> map = pairsToMap(n.getPairs());
                 MemberValuePair value = map.get("value");
+                MemberValuePair name = map.get("name");
+                MemberValuePair required = map.get("required");
+                MemberValuePair example = map.get("example");
+                MemberValuePair hidden = map.get("hidden");
                 if (value != null) {
                     //name属性是字段展示名称，默认就是和字段名一致，如果前端展示字段名和后台字段名不一致，才需要定义
                     pairs.add(new MemberValuePair("description", value.getValue()));
+                }
+                if (name != null) {
+                    pairs.add(new MemberValuePair("name", name.getValue()));
+                }
+                if (required != null) {
+                    pairs.add(new MemberValuePair("required", required.getValue()));
+                }
+                if (example != null) {
+                    pairs.add(new MemberValuePair("example", example.getValue()));
+                }
+                if (hidden != null) {
+                    pairs.add(new MemberValuePair("hidden", hidden.getValue()));
                 }
                 replacedCheck(n, pairs, map);
                 return new NormalAnnotationExpr(model.getNewAnnNameClone(), pairs);
