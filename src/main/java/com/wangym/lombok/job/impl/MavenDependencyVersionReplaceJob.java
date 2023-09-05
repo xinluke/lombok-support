@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
@@ -95,6 +96,13 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     iterator.remove();
                 }
             }
+
+            // 删除重复的依赖声明
+            deleteDuplicateDependencies(model.getDependencies());
+            DependencyManagement dm = model.getDependencyManagement();
+            if (dm != null) {
+                deleteDuplicateDependencies(dm.getDependencies());
+            }
             mergeProperty();
         }
 
@@ -112,14 +120,20 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 notifyHasModify();
                 return;
             }
-            // 如果是原始的值类型的版本号才进行处理
-            if (!isVersion(v)) {
-                return;
-            }
 
-            insertProperty(a, v);
-            d.setVersion(getNewVersion(a));
-            notifyHasModify();
+            if (isRefPropertyVersion(v)) {
+                String versionValue = getRefVersionKey(d);
+                //这种情况是不标准的，应该把版本号的声明放在父类中，有可能是从父类pom.xml复制过来忘记删除掉版本号声明了
+                if (!hasVersionProperty(versionValue)) {
+                    d.setVersion(null);
+                    notifyHasModify();
+                }
+            } else if (StringUtils.isNotEmpty(v)) {
+                // 如果是原始的值类型的版本号才进行处理
+                insertProperty(a, v);
+                d.setVersion(getNewVersion(a));
+                notifyHasModify();
+            }
         }
 
         private void notifyHasModify() {
@@ -127,6 +141,15 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             hasModify = true;
         }
 
+        private boolean hasVersionProperty(String versionKey) {
+            Properties prop = model.getProperties();
+            List<String> refVersionList = prop.stringPropertyNames().stream() //
+                    .filter((item) -> {
+                        return !standardList.contains(item) && item.endsWith(".version");
+                    }) // 只关心我们自定义的version属性
+                    .collect(Collectors.toList());
+            return refVersionList.contains(versionKey);
+        }
 
         private void mergeProperty() {
             // 得到最全的版本列表
@@ -146,18 +169,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 // 说明pom.xml有变动
                 hasModify = true;
             }
-            List<Dependency> dependencies = model.getDependencies();
-            // 删除重复的依赖声明
-            Map<String, Long> collect = dependencies
-                    .stream()
-                    .map(Dependency::toString)
-                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-            collect.forEach((k,v)->{
-                //如果不唯一则操作
-                if(v>1) {
-                    checkDependenciesByKey(k, v);
-                }
-            });
+
             // 如果存在依赖的版本号，则更新版本号
             checkAndUpdateVersion();
             checkAndUpdateParentVersion();
@@ -241,9 +253,22 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             }
         }
 
-        private void checkDependenciesByKey(String key, long index) {
-            List<Dependency> dependencies = model.getDependencies();
-            for (Iterator<Dependency> iterator = dependencies.iterator(); iterator.hasNext();) {
+        private void deleteDuplicateDependencies(List<Dependency> dependencies) {
+            // 删除重复的依赖声明
+            Map<String, Long> collect = dependencies
+                    .stream()
+                    .map(Dependency::toString)
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+            collect.forEach((k, v) -> {
+                //如果不唯一则操作
+                if (v > 1) {
+                    checkDependenciesByKey(dependencies, k, v);
+                }
+            });
+        }
+
+        private void checkDependenciesByKey(List<Dependency> dependencies, String key, long index) {
+            for (Iterator<Dependency> iterator = dependencies.iterator(); iterator.hasNext(); ) {
                 Dependency dependency = iterator.next();
                 if (key.equals(dependency.toString()) && index > 1) {
                     iterator.remove();
@@ -266,44 +291,41 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             return "${" + key + "}";
         }
 
-        private boolean isVersion(String version) {
-            if (StringUtils.isEmpty(version)) {
-                return false;
+        private boolean isRefPropertyVersion(String version) {
+            if (version != null && version.startsWith("${") && version.endsWith(".version}")) {
+                return true;
             }
-            if (version.contains("$")) {
-                return false;
-            }
-            return true;
+            return false;
+        }
+        private List<String> getVersionList(Model model) {
+            List<Dependency> dep1 = model.getDependencies();
+            List<Dependency> dep2 = Optional.ofNullable(model.getDependencyManagement())
+                    .map(it->it.getDependencies())
+                    .orElse(Collections.emptyList());
+            ArrayList<Dependency> list = new ArrayList<>();
+            list.addAll(dep1);
+            list.addAll(dep2);
+            return getVersionList(list);
         }
 
-
-    }
-
-    private List<String> getVersionList(Model model) {
-        List<Dependency> dep1 = model.getDependencies();
-        List<Dependency> dep2 = Optional.ofNullable(model.getDependencyManagement())
-                .map(it->it.getDependencies())
-                .orElse(Collections.emptyList());
-        ArrayList<Dependency> list = new ArrayList<>();
-        list.addAll(dep1);
-        list.addAll(dep2);
-        return getVersionList(list);
-    }
-
-    private List<String> getVersionList(List<Dependency> dependencies) {
-        List<String> versionList = dependencies.stream().filter(it -> {
-            String version = it.getVersion();
-            if (version != null) {
-                return version.startsWith("${") && version.endsWith(".version}");
+        private String getRefVersionKey(Dependency dependency) {
+            String version = dependency.getVersion();
+            if(isRefPropertyVersion(version)) {
+                int length = version.length();
+                //"${" + key + "}",去除包裹的的模式字符
+                return version.substring(2, length - 1);
             }
-            // 沒有版本的情況,这种是使用parent制定的版本列表
-            return false;
-        }).map(it -> {
-            int length = it.getVersion().length();
-            //"${" + key + "}",去除包裹的的模式字符
-            return it.getVersion().substring(2, length - 1);
-        }).collect(Collectors.toList());
-        return versionList;
+            return null;
+        }
+
+        private List<String> getVersionList(List<Dependency> dependencies) {
+            List<String> versionList = dependencies.stream()
+                    .map(this::getRefVersionKey)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            return versionList;
+        }
+
     }
 
 
