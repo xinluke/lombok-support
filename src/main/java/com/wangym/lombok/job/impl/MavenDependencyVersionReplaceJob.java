@@ -88,14 +88,15 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     .map(it->it.getDependencies())
                     .orElse(Collections.emptyList())
                     .forEach(this::processDependency);
-            List<Dependency> dep2 = getDependencyOfDependencyManagement();
-            for (Iterator<Dependency> iterator = dep2.iterator(); iterator.hasNext(); ) {
-                Dependency dependency = iterator.next();
-                //在依赖管理器中的版本不能为空，这样会导致依赖出错
-                if (dependency.getVersion() == null) {
-                    iterator.remove();
-                }
-            }
+            //因为${project.version}的声明，在读取的时候，会当做null的版本来处理，这样的依赖是不能去除的
+//            List<Dependency> dep2 = getDependencyOfDependencyManagement();
+//            for (Iterator<Dependency> iterator = dep2.iterator(); iterator.hasNext(); ) {
+//                Dependency dependency = iterator.next();
+//                //在依赖管理器中的版本不能为空，这样会导致依赖出错
+//                if (dependency.getVersion() == null) {
+//                    iterator.remove();
+//                }
+//            }
 
             // 删除重复的依赖声明
             deleteDuplicateDependencies(model.getDependencies());
