@@ -135,7 +135,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 if (version.contains("$")) {
                     realVer = getRefVersionValue(d);
                     //因为是不标准的版本属性声明，需要显式指定进行删除
-                    model.getProperties().remove(version);
+                    model.getProperties().remove(getRefVersionKey(version));
                 } else {
                     realVer = version;
                 }
@@ -334,6 +334,10 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
 
         private String getRefVersionKey(Dependency dependency) {
             String version = dependency.getVersion();
+            return getRefVersionKey(version);
+        }
+
+        private String getRefVersionKey(String version) {
             if(isRefPropertyVersion(version)) {
                 int length = version.length();
                 //"${" + key + "}",去除包裹的的模式字符
