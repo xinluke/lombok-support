@@ -121,14 +121,22 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 return;
             }
 
-            if (isRefPropertyVersion(v)) {
+            if (isNormalRefPropertyVersion(d)) {
                 String versionValue = getRefVersionKey(d);
                 //这种情况是不标准的，应该把版本号的声明放在父类中，有可能是从父类pom.xml复制过来忘记删除掉版本号声明了
                 if (!hasVersionProperty(versionValue)) {
                     d.setVersion(null);
                     notifyHasModify();
                 }
-            } else if (StringUtils.isNotEmpty(v) && !v.contains("$")) {
+            } else if (StringUtils.isNotEmpty(v)) {
+                //这种情况，说明是引用了属性的变量，但是不是很规范
+                //需要统一规范一下
+                String realVer;
+                if (v.contains("$")) {
+                    realVer = getRefVersionValue(d);
+                } else {
+                    realVer = v;
+                }
                 // 如果是原始的值类型的版本号才进行处理
                 insertProperty(a, v);
                 d.setVersion(getNewVersion(a));
@@ -292,6 +300,20 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         }
 
         private boolean isRefPropertyVersion(String version) {
+            if (version != null && version.startsWith("${") && version.endsWith("}")) {
+                return true;
+            }
+            return false;
+        }
+
+        /**
+         * 判断是否是标准的属性引用
+         *
+         * @param dependency
+         * @return
+         */
+        private boolean isNormalRefPropertyVersion(Dependency dependency) {
+            String version = dependency.getVersion();
             if (version != null && version.startsWith("${") && version.endsWith(".version}")) {
                 return true;
             }
@@ -318,8 +340,14 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             return null;
         }
 
+        private String getRefVersionValue(Dependency dependency) {
+            Properties prop = model.getProperties();
+            return prop.getProperty(getRefVersionKey(dependency));
+        }
+
         private List<String> getVersionList(List<Dependency> dependencies) {
             List<String> versionList = dependencies.stream()
+                    .filter(this::isNormalRefPropertyVersion)
                     .map(this::getRefVersionKey)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
