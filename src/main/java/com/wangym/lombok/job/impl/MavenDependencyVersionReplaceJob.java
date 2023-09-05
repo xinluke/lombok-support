@@ -128,7 +128,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     d.setVersion(null);
                     notifyHasModify();
                 }
-            } else if (StringUtils.isNotEmpty(v)) {
+            } else if (StringUtils.isNotEmpty(v) && !v.contains("$")) {
                 // 如果是原始的值类型的版本号才进行处理
                 insertProperty(a, v);
                 d.setVersion(getNewVersion(a));
