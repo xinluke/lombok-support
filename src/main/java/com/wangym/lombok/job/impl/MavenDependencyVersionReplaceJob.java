@@ -156,9 +156,13 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             Properties prop = model.getProperties();
             List<String> refVersionList = prop.stringPropertyNames().stream() //
                     .filter((item) -> {
-                        return !standardList.contains(item) && item.endsWith(".version");
+                        return item.endsWith(".version");
                     }) // 只关心我们自定义的version属性
                     .collect(Collectors.toList());
+            //如果是内置变量，认为是有效的
+            if (standardList.contains(versionKey)) {
+                return true;
+            }
             return refVersionList.contains(versionKey);
         }
 
