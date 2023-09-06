@@ -73,6 +73,7 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         // 白名单列表
         private List<String> standardList = Arrays.asList("java.version",
                 "project.version");
+        private List<String> unusedVersionKey = new ArrayList<>();
 
         public ModelWrapper(DependencyVersionService dvService, Model model) {
             super();
@@ -105,6 +106,13 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 deleteDuplicateDependencies(dm.getDependencies());
             }
             mergeProperty();
+
+            doAfter();
+        }
+
+        private void doAfter() {
+            //因为是不标准的版本属性声明，需要显式指定进行删除
+            unusedVersionKey.forEach(it -> model.getProperties().remove(it));
         }
 
         private List<Dependency> getDependencyOfDependencyManagement() {
@@ -135,8 +143,8 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 String realVer;
                 if (version.contains("$")) {
                     realVer = getRefVersionValue(d);
-                    //因为是不标准的版本属性声明，需要显式指定进行删除
-                    model.getProperties().remove(getRefVersionKey(version));
+                    //可能会有对个依赖引用了同一个属性，得放在最后处理
+                    unusedVersionKey.add(getRefVersionKey(version));
                 } else {
                     realVer = version;
                 }

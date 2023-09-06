@@ -99,6 +99,12 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!--使用默认的内置变量-->
+            <dependency>
+                <groupId>commons-lang</groupId>
+                <artifactId>commons-lang</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
