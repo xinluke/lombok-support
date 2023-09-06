@@ -71,7 +71,8 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
         private Model model;
         private boolean hasModify = false;
         // 白名单列表
-        private List<String> standardList = Arrays.asList("java.version");
+        private List<String> standardList = Arrays.asList("java.version",
+                "project.version");
 
         public ModelWrapper(DependencyVersionService dvService, Model model) {
             super();
