@@ -26,6 +26,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
+        <stat-service-api.version>1.44.0</stat-service-api.version>
     </properties>
 
     <dependencies>
@@ -73,6 +74,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.5</version>
+        </dependency>
+        <!--不标准的定义-->
+        <dependency>
+            <groupId>com.wangym</groupId>
+            <artifactId>stat-services-api</artifactId>
+            <version>${stat-service-api.version}</version>
         </dependency>
     </dependencies>
     <dependencyManagement>

@@ -121,9 +121,9 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     .orElse(Collections.emptyList());
         }
         private void processDependency(Dependency d){
-            String a = d.getArtifactId();
+            String artifactId = d.getArtifactId();
             String version = d.getVersion();
-            if(dvService.getHiddenVersionArtifactIdList().contains(a)) {
+            if(dvService.getHiddenVersionArtifactIdList().contains(artifactId)) {
                 // 去除版本号相关声明
                 d.setVersion(null);
                 notifyHasModify();
@@ -137,6 +137,14 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     d.setVersion(null);
                     notifyHasModify();
                 }
+                //定义的变量不规范，需要规范化
+                String newVersion = getNewVersion(artifactId);
+                String realVer = getRefVersionValue(d);
+                if (!d.getVersion().equals(newVersion) && StringUtils.isNotEmpty(realVer)) {
+                    unusedVersionKey.add(getRefVersionKey(version));
+                    insertProperty(artifactId, realVer);
+                    d.setVersion(newVersion);
+                }
             } else if (StringUtils.isNotEmpty(version)) {
                 //这种情况，说明是引用了属性的变量，但是不是很规范
                 //需要统一规范一下
@@ -149,8 +157,8 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     realVer = version;
                 }
                 // 如果是原始的值类型的版本号才进行处理
-                insertProperty(a, realVer);
-                d.setVersion(getNewVersion(a));
+                insertProperty(artifactId, realVer);
+                d.setVersion(getNewVersion(artifactId));
                 notifyHasModify();
             }
         }
