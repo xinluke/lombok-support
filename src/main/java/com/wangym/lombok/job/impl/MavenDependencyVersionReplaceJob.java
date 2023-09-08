@@ -315,7 +315,10 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             String key = artifactId + ".version";
             Properties prop = model.getProperties();
             // 如果当前key存在会产生覆盖效果
-            prop.setProperty(key, version);
+            //如果完全一致，则不操作，避免git调整记录
+            if (!version.equals(prop.getProperty(key))) {
+                prop.setProperty(key, version);
+            }
         }
 
         private String getNewVersion(String artifactId) {

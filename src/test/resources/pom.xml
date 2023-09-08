@@ -23,6 +23,8 @@
         <javaparser-symbol-solver-core.version>3.6.5</javaparser-symbol-solver-core.version>
         <!-- 无用的版本号，期望删除掉此纪录  -->
         <test-useless.version>3.6.5</test-useless.version>
+        <!--已存在记录，期望不发生变动-->
+        <swagger-annotations.version>1.5.14</swagger-annotations.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
@@ -80,6 +82,12 @@
             <groupId>com.wangym</groupId>
             <artifactId>stat-services-api</artifactId>
             <version>${stat-service-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>1.5.14</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <dependencyManagement>
