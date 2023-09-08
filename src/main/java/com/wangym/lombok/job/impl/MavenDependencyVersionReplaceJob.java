@@ -131,12 +131,6 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
             }
 
             if (isNormalRefPropertyVersion(d)) {
-                String versionValue = getRefVersionKey(d);
-                //这种情况是不标准的，应该把版本号的声明放在父类中，有可能是从父类pom.xml复制过来忘记删除掉版本号声明了
-                if (!hasVersionProperty(versionValue)) {
-                    d.setVersion(null);
-                    notifyHasModify();
-                }
                 //定义的变量不规范，需要规范化
                 String newVersion = getNewVersion(artifactId);
                 String realVer = getRefVersionValue(d);
@@ -145,6 +139,12 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                     //不需要的属性声明，多次运行的时候，会自动被清除的
                     insertProperty(artifactId, realVer);
                     d.setVersion(newVersion);
+                }
+                String versionValue = getRefVersionKey(d);
+                //这种情况是不标准的，应该把版本号的声明放在父类中，有可能是从父类pom.xml复制过来忘记删除掉版本号声明了
+                if (!hasVersionProperty(versionValue)) {
+                    d.setVersion(null);
+                    notifyHasModify();
                 }
             } else if (StringUtils.isNotEmpty(version)) {
                 //这种情况，说明是引用了属性的变量，但是不是很规范
@@ -368,12 +368,13 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 //"${" + key + "}",去除包裹的的模式字符
                 return version.substring(2, length - 1);
             }
-            return null;
+            return "";
         }
 
         private String getRefVersionValue(Dependency dependency) {
             Properties prop = model.getProperties();
-            return prop.getProperty(getRefVersionKey(dependency));
+            String refVersionKey = getRefVersionKey(dependency);
+            return prop.getProperty(refVersionKey);
         }
 
         private List<String> getVersionList(List<Dependency> dependencies) {
