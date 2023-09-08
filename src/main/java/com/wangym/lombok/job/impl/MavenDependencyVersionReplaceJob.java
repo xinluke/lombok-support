@@ -141,7 +141,8 @@ public class MavenDependencyVersionReplaceJob extends AbstractJob {
                 String newVersion = getNewVersion(artifactId);
                 String realVer = getRefVersionValue(d);
                 if (!d.getVersion().equals(newVersion) && StringUtils.isNotEmpty(realVer)) {
-                    unusedVersionKey.add(getRefVersionKey(version));
+                    //不需要强制删除，避免原本有还有引用，导致被误删除
+                    //不需要的属性声明，多次运行的时候，会自动被清除的
                     insertProperty(artifactId, realVer);
                     d.setVersion(newVersion);
                 }
