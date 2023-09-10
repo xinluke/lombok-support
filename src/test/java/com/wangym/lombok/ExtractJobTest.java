@@ -22,6 +22,6 @@ public class ExtractJobTest {
 
     @Test
     public void handle() throws IOException {
-        job.handle(new File("c:/TrackingController.java"));
+        job.handle(new File("TrackingController.java"));
     }
 }

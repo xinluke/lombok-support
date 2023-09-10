@@ -68,6 +68,7 @@ public class ExtractJob extends JavaJob {
             if (!set.contains(Modifier.publicModifier())) {
                 return null;
             }
+
             // 公有方法的修饰符去除，本身在接口中的方法就是public的
             NodeList<Modifier> newset = NodeList.nodeList(set);
             newset.remove(Modifier.publicModifier());

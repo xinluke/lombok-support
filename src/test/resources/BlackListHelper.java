@@ -1,7 +1,7 @@
 package cn.jpush.http.report.helper;
 
-import cn.jpush.http.report.bean.ExceptionEnum;
-import cn.jpush.http.report.exception.BaseException;
+import com.wangym.http.report.bean.ExceptionEnum;
+import com.wangym.http.report.exception.BaseException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
