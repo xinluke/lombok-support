@@ -15,6 +15,7 @@ public class NormalizationJavaJob extends JavaJob {
     public void handle(File file) throws IOException {
         byte[] bytes = FileCopyUtils.copyToByteArray(file);
         String code = new String(bytes, "utf-8");
+        //rule:(Java) Modifiers should be declared in the correct order
         //Reorder the modifiers to comply with the Java Language Specification.
         String newBody = code.replaceAll(" final static ", " static final ");
         // 以utf-8编码的方式写入文件中
