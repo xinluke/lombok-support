@@ -3,8 +3,10 @@ package com.wangym.lombok.job;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import com.wangym.lombok.conf.RuleConf;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
@@ -13,6 +15,8 @@ import java.io.IOException;
 @Slf4j
 public abstract class AbstractJavaJob extends JavaJob {
 
+    @Autowired
+    protected RuleConf ruleConf;
     @Setter
     private boolean showDetail;
 

@@ -173,7 +173,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         @Override
         public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
             //FeignClient注解写法标准化
-            if (n.getName().equals(FEIGN_CLIENT)) {
+            if (ruleConf.isFeignNameEnable() && n.getName().equals(FEIGN_CLIENT)) {
                 NodeList<MemberValuePair> pairs = new NodeList<>();
                 //字段名叫name比叫value好，简明扼要，表达清晰
                 pairs.add(new MemberValuePair("name", n.getMemberValue()));

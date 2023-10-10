@@ -297,7 +297,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
             // 准备替换Mapping*注解的path/value字段
             for (MemberValuePair p : pairs) {
                 String nameAsString = p.getNameAsString();
-                if ("path".equals(nameAsString)) {
+                if (ruleConf.isRequestMappingPathEnable() && "path".equals(nameAsString)) {
                     // 使用path的参数全部切换成value的方式，统一
                     p.setName(new SimpleName("value"));
                 }
