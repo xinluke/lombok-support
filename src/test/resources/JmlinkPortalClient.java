@@ -1,24 +1,15 @@
 package com.wangym.portal.client;
 
-import com.wangym.jmlink.base.data.enums.UniversalLinkType;
 import com.wangym.jmlink.base.data.model.env.BaseAppEnvParam;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.RequestTemplate;
 import feign.Retryer;
-import feign.codec.EncodeException;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.netflix.feign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import java.lang.reflect.Type;
 
 @FeignClient(name = "jmlink-portal",
         configuration = {
@@ -26,8 +17,15 @@ import java.lang.reflect.Type;
         })
 public interface JmlinkPortalClient {
 
+    //这是一个单行注释
     @PostMapping(value = "/jmlink-portal/v1/jmlink/app/{appKey}/env/android/integrate")
     HttpEntity addAndroid(@PathVariable("appKey") String appKey,
+                          @RequestBody AndroidParam param);
+    /*
+    这是一个多行注释
+     */
+    @PostMapping(value = "/jmlink-portal/v1/jmlink/app/{appKey}/env/android/integrate2")
+    HttpEntity addAndroid2(@PathVariable("appKey") String appKey,
                           @RequestBody AndroidParam param);
 
     @EqualsAndHashCode(callSuper = true)

@@ -7,6 +7,8 @@ import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
@@ -37,6 +39,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
     private Metadata metaArrayList = new Metadata("ArrayList", "java.util.ArrayList");
     @Value("${synchronizedAnnotationSupport:false}")
     private boolean synchronizedAnnotationSupport;
+
     @Override
     public void process(CompilationUnit compilationUnit) {
         compilationUnit.accept(new SynchronizedMehtodVisitor(compilationUnit), null);
@@ -45,10 +48,11 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         compilationUnit.accept(new GuavaVisitor(compilationUnit), null);
         compilationUnit.accept(visitor, null);
         compilationUnit.accept(new ValueVisitor(), null);
+        compilationUnit.accept(new CommentVistor(), null);
         compilationUnit.accept(new FeignClientVisitor(), null);
         AutowiredVisitor visit = new AutowiredVisitor();
         compilationUnit.accept(visit, null);
-        if(visit.isFlag()) {
+        if (visit.isFlag()) {
             addImports(compilationUnit, meta2);
         }
     }
@@ -81,7 +85,30 @@ public class SystemOutPrintJob extends AbstractJavaJob {
                 return exist;
             }
         }, null);
-    };
+    }
+
+    ;
+
+    class CommentVistor extends ModifierVisitor<Void> {
+        @Override
+        public Visitable visit(Modifier n, Void arg) {
+            return super.visit(n, arg);
+        }
+
+        @Override
+        public Visitable visit(MethodDeclaration n, Void arg) {
+            //将非javadoc注释换成javadoc注释
+            if (n.getComment().isPresent()) {
+                Comment comment = n.getComment().get();
+                //只处理单行注释
+                if (comment instanceof LineComment) {
+                    String content = comment.getContent();
+                    n.setJavadocComment(content);
+                }
+            }
+            return super.visit(n, arg);
+        }
+    }
 
     class ValueVisitor extends ModifierVisitor<Void> {
         @Override
@@ -89,7 +116,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             Expression targetValExpr = null;
             NodeList<AnnotationExpr> anns = n.getAnnotations();
             // 将字段上面的@Value(value="${black.list}")去掉value=，统一格式
-            for (Iterator<AnnotationExpr> iterator = anns.iterator(); iterator.hasNext();) {
+            for (Iterator<AnnotationExpr> iterator = anns.iterator(); iterator.hasNext(); ) {
                 AnnotationExpr annotationExpr = iterator.next();
                 if ("Value".equals(annotationExpr.getNameAsString())) {
                     if (annotationExpr instanceof NormalAnnotationExpr) {
@@ -125,7 +152,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             boolean record = false;
             NodeList<AnnotationExpr> anns = n.getAnnotations();
             // 将字段上面的@Resource换成@Autowired,统一管理
-            for (Iterator<AnnotationExpr> iterator = anns.iterator(); iterator.hasNext();) {
+            for (Iterator<AnnotationExpr> iterator = anns.iterator(); iterator.hasNext(); ) {
                 AnnotationExpr annotationExpr = iterator.next();
                 if ("Resource".equals(annotationExpr.getNameAsString())) {
                     iterator.remove();
@@ -140,6 +167,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             return super.visit(n, arg);
         }
     }
+
     class FeignClientVisitor extends ModifierVisitor<Void> {
 
         @Override
@@ -156,9 +184,11 @@ public class SystemOutPrintJob extends AbstractJavaJob {
 
 
     }
+
     class FeignClientCheckVisitor extends ModifierVisitor<Void> {
 
         private String path;
+
         public FeignClientCheckVisitor(String path) {
             super();
             this.path = path;
@@ -248,7 +278,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
     class SystemOutPrintVisitor extends ModifierVisitor<Void> {
 
         private CompilationUnit compilationUnit;
-        
+
         public SystemOutPrintVisitor(CompilationUnit compilationUnit) {
             super();
             this.compilationUnit = compilationUnit;
@@ -279,7 +309,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             if (size == 1) {
                 Expression arg = args.get(0);
                 // 如果判断参数类型不是String的话就应该包装print
-                if (!(arg instanceof StringLiteralExpr|| arg instanceof BinaryExpr)) {
+                if (!(arg instanceof StringLiteralExpr || arg instanceof BinaryExpr)) {
                     args.add(0, new StringLiteralExpr("print:{}"));
                 }
             }
@@ -292,7 +322,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
 
     class SynchronizedMehtodVisitor extends ModifierVisitor<Void> {
         private CompilationUnit compilationUnit;
-        
+
         public SynchronizedMehtodVisitor(CompilationUnit compilationUnit) {
             super();
             this.compilationUnit = compilationUnit;
@@ -310,6 +340,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             return super.visit(n, arg);
         }
     }
+
     class MainMehtodVisitor extends ModifierVisitor<Void> {
         @Override
         public Visitable visit(MethodDeclaration n, Void arg) {
