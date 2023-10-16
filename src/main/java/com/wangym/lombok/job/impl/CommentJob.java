@@ -4,10 +4,7 @@ import com.wangym.lombok.job.AbstractJob;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,20 +19,21 @@ public class CommentJob extends AbstractJob {
     public void exec(File file) throws IOException {
         //按行读取文件
         StringBuffer sb = new StringBuffer();
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        boolean changeFlag = false;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 //判断是否包含行尾注释，将行尾注释提到上一行
-                processLine(line, sb);
+                changeFlag = true && processLine(line, sb);
             }
         }
         //如果文件内容发生变化，重新写入文件
-        if (!sb.toString().equals(FileCopyUtils.copyToString(new FileReader(file)))) {
+        if (changeFlag) {
             FileCopyUtils.copy(sb.toString().getBytes("utf-8"), file);
         }
     }
 
-    private void processLine(String text, StringBuffer sb) {
+    private boolean processLine(String text, StringBuffer sb) {
         Pattern pattern = Pattern.compile("^(\\s*)(.*?;)\\s*(//.*)$");  // 匹配行尾注释
         Matcher matcher = pattern.matcher(text);
 
@@ -46,8 +44,10 @@ public class CommentJob extends AbstractJob {
 
             sb.append(commentAlignment + comment + "\n");
             sb.append(commentAlignment + code + "\n");
+            return true;
         } else {
             sb.append(text + "\n");
+            return false;
         }
     }
 
