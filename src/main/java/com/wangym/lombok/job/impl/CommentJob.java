@@ -24,7 +24,9 @@ public class CommentJob extends AbstractJob {
             String line;
             while ((line = reader.readLine()) != null) {
                 //判断是否包含行尾注释，将行尾注释提到上一行
-                changeFlag = true && processLine(line, sb);
+                if (processLine(line, sb)) {
+                    changeFlag = true;
+                }
             }
         }
         //如果文件内容发生变化，重新写入文件
