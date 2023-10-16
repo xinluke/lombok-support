@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -101,9 +103,9 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             //将非javadoc注释换成javadoc注释
             if (n.getComment().isPresent()) {
                 Comment comment = n.getComment().get();
-                //只处理单行注释
-                if (comment instanceof LineComment) {
-                    String content = comment.getContent();
+                String content = comment.getContent();
+                //只处理单行注释,如果包含中文，就认为是javadoc注释
+                if (comment instanceof LineComment && containsChinese(content)) {
                     n.setJavadocComment(content);
                 }
             }
@@ -115,13 +117,21 @@ public class SystemOutPrintJob extends AbstractJavaJob {
             //将非javadoc注释换成javadoc注释
             if (n.getComment().isPresent()) {
                 Comment comment = n.getComment().get();
-                //只处理单行注释
-                if (comment instanceof LineComment) {
-                    String content = comment.getContent();
+                String content = comment.getContent();
+                //只处理单行注释,如果包含中文，就认为是javadoc注释
+                if (comment instanceof LineComment && containsChinese(content)) {
                     n.setJavadocComment(content);
                 }
             }
             return super.visit(n, arg);
+        }
+
+        public boolean containsChinese(String text) {
+            String pattern = "[\\u4e00-\\u9fa5]";
+            Pattern chinesePattern = Pattern.compile(pattern);
+            Matcher matcher = chinesePattern.matcher(text);
+
+            return matcher.find();
         }
     }
 
