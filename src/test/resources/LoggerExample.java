@@ -8,7 +8,7 @@ public class LoggerExample {
 
     public void test() {
         int a = 5;
-        double b = 6d;
+        double b = 6d; //这个是行尾注释，会被提到上一行
         double b1 = 6.1;
         long c = 7;
         long c2 = 8l;
