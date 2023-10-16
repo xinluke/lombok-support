@@ -97,6 +97,21 @@ public class SystemOutPrintJob extends AbstractJavaJob {
 
         @Override
         public Visitable visit(MethodDeclaration n, Void arg) {
+            //todo 对多个单行的注释处理有问题，没有进行合并
+            //将非javadoc注释换成javadoc注释
+            if (n.getComment().isPresent()) {
+                Comment comment = n.getComment().get();
+                //只处理单行注释
+                if (comment instanceof LineComment) {
+                    String content = comment.getContent();
+                    n.setJavadocComment(content);
+                }
+            }
+            return super.visit(n, arg);
+        }
+
+        @Override
+        public Visitable visit(FieldDeclaration n, Void arg) {
             //将非javadoc注释换成javadoc注释
             if (n.getComment().isPresent()) {
                 Comment comment = n.getComment().get();
