@@ -22,4 +22,9 @@ public class CommentJobTest {
         job.exec(new ClassPathResource("LoggerExample.java").getFile());
     }
 
+    @Test
+    public void handle1() throws IOException {
+        job.exec(new ClassPathResource("SystemOutPrintExample.java").getFile());
+    }
+
 }
