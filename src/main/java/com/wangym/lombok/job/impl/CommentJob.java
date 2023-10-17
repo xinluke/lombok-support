@@ -1,6 +1,8 @@
 package com.wangym.lombok.job.impl;
 
 import com.wangym.lombok.job.AbstractJob;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
@@ -9,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class CommentJob extends AbstractJob {
 
     public CommentJob() {
