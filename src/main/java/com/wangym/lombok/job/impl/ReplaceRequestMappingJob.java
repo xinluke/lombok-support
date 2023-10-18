@@ -12,7 +12,6 @@ import com.wangym.lombok.job.Metadata;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -31,13 +30,7 @@ import java.util.stream.Collectors;
 public class ReplaceRequestMappingJob extends AbstractJavaJob {
     private List<String> annNames = Arrays.asList("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
             "DeleteMapping", "PatchMapping");
-    // 是否要将类上面的url和方法拼接到一起
-    @Value("${mergeRequestUrl:false}")
-    private boolean enableMergeRequestUrl;
-    @Value("${onlySupportJson:false}")
-    private boolean onlySupportJson;
-    @Value("${addApiOperation:false}")
-    private boolean apiOperation;
+
     private static Map<String, Metadata> mapping = new HashMap<>();
     static {
         mapping.put("RequestMethod.GET",
@@ -58,7 +51,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
         RequestMappingConstructorVisitor visitor = new RequestMappingConstructorVisitor(compilationUnit);
         compilationUnit.accept(visitor, null);
         compilationUnit.accept(new RequiresPermissionsVisitor(), null);
-        if (apiOperation) {
+        if (ruleConf.isApiOperation()) {
             compilationUnit.accept(new ApiOperationVisitor(), null);
         }
         // 如果存在变更，则操作
@@ -269,7 +262,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
 
         void recordPath(String newPath) {
             // 只更新一次
-            if (path == null && enableMergeRequestUrl && isInterface) {
+            if (path == null && ruleConf.isEnableMergeRequestUrl() && isInterface) {
                 path = newPath;
             }
         }
@@ -359,10 +352,7 @@ public class ReplaceRequestMappingJob extends AbstractJavaJob {
                     producesExist = true;
                 }
             }
-            if(onlySupportJson && !producesExist) {
-                // 有些开发者希望api返回的格式是固定的，所以直接在注解声明只支持json格式的数据响应
-                // 避免有些开发者不清楚自己使用了Http的Accept协商头，而我们的api假如是多种返回格式的话，可能会返回xml或者其他格式的数据，而重点在于开发者不太了解http的协商机制，从而认为是我们的问题。
-                // 现阶段使用json格式的数据应该是满足绝大部分的用户的需求
+            if(ruleConf.isOnlySupportJson() && !producesExist) {
                 FieldAccessExpr value = new FieldAccessExpr(new NameExpr("MediaType"), "APPLICATION_JSON_VALUE");
                 pairs.add(new MemberValuePair("produces", value));
                 addImports(compilationUnit, mediaTypeMetadata);

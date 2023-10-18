@@ -14,7 +14,6 @@ import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -31,12 +30,10 @@ import java.util.stream.Collectors;
 public class ReplaceLoggerJob extends AbstractJavaJob {
 
     private Metadata meta = new Metadata("Slf4j", "lombok.extern.slf4j.Slf4j");
-    @Value("${loggerSearchAll:false}")
-    private boolean fullSearch;
 
     @Override
     public void process(CompilationUnit compilationUnit) {
-        LoggerVisitor visitor = new LoggerVisitor(fullSearch);
+        LoggerVisitor visitor = new LoggerVisitor(ruleConf.isFullSearch());
         compilationUnit.accept(visitor, null);
         //compilationUnit.findAll(FieldDeclaration.class).forEach(it -> visitor.visit(it, null));
         // rename变量

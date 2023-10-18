@@ -18,7 +18,6 @@ import com.wangym.lombok.job.AbstractJavaJob;
 import com.wangym.lombok.job.Metadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -39,8 +38,6 @@ public class SystemOutPrintJob extends AbstractJavaJob {
     private Metadata meta3 = new Metadata("Synchronized", "lombok.Synchronized");
     private Metadata metaHashMap = new Metadata("HashMap", "java.util.HashMap");
     private Metadata metaArrayList = new Metadata("ArrayList", "java.util.ArrayList");
-    @Value("${synchronizedAnnotationSupport:false}")
-    private boolean synchronizedAnnotationSupport;
 
     @Override
     public void process(CompilationUnit compilationUnit) {
@@ -356,7 +353,7 @@ public class SystemOutPrintJob extends AbstractJavaJob {
         @Override
         public Visitable visit(MethodDeclaration n, Void arg) {
             //如果存在Synchronized的方法块，需要转成lombok的注解
-            if (synchronizedAnnotationSupport && n.isSynchronized()) {
+            if (ruleConf.isSynchronizedAnnotationSupport() && n.isSynchronized()) {
                 NodeList<Modifier> mo = n.getModifiers();
                 mo.remove(Modifier.synchronizedModifier());
                 n.addAnnotation(new MarkerAnnotationExpr(meta3.getAnnName()));
