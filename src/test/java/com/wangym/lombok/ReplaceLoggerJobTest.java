@@ -15,9 +15,11 @@ import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@Slf4j
 public class ReplaceLoggerJobTest {
 
     @Autowired
@@ -52,11 +54,11 @@ public class ReplaceLoggerJobTest {
                 .forEach(c -> {
                     String oldName = c.getNameAsString();
                     String newName = "Abstract" + oldName;
-                    System.out.println("Renaming class " + oldName + " into " + newName);
+                    log.info("Renaming class {} into {}", oldName, newName);
                     c.setName(newName);
                 });
         String newBody = LexicalPreservingPrinter.print(cu);
-        System.out.println(newBody);
+        log.info("print:{}", newBody);
     }
 
 }
